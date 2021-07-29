@@ -276,7 +276,7 @@ ad_vector_t PinocchioEndEffectorKinematicsCppAd::getAccelerationCppAd(
     return accelerations;
 }
 
-PinocchioEndEffectorKinematicsCppAd::ad_quaternion_t
+PinocchioEndEffectorKinematicsCppAd::ad_rotmat_t
 PinocchioEndEffectorKinematicsCppAd::getOrientationCppAd(
     const ad_vector_t& state) {
     const auto& model = pinocchioInterfaceCppAdPtr_->getModel();
@@ -293,8 +293,8 @@ PinocchioEndEffectorKinematicsCppAd::getOrientationCppAd(
     }
 
     const size_t frameId = endEffectorFrameIds_[0];
-    ad_quaternion_t orientation(data.oMf[frameId].rotation());
-    return orientation;
+    ad_rotmat_t rotation = data.oMf[frameId].rotation();
+    return rotation;
 }
 
 ad_vector_t PinocchioEndEffectorKinematicsCppAd::getAngularVelocityCppAd(

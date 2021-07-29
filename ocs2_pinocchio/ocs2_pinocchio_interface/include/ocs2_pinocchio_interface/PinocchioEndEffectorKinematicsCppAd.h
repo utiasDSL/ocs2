@@ -61,6 +61,7 @@ class PinocchioEndEffectorKinematicsCppAd final
         PinocchioInterfaceTpl<ad_scalar_t>& pinocchioInterface)>;
 
     using ad_quaternion_t = Eigen::Quaternion<ad_scalar_t>;
+    using ad_rotmat_t = Eigen::Matrix<ad_scalar_t, 3, 3>;
 
     /** Constructor
      * @param [in] pinocchioInterface pinocchio interface.
@@ -138,7 +139,7 @@ class PinocchioEndEffectorKinematicsCppAd final
     ad_vector_t getAccelerationCppAd(const ad_vector_t& state,
                                      const ad_vector_t& input);
 
-    ad_quaternion_t getOrientationCppAd(const ad_vector_t& state);
+    ad_rotmat_t getOrientationCppAd(const ad_vector_t& state);
     ad_vector_t getAngularVelocityCppAd(const ad_vector_t& state,
                                         const ad_vector_t& input);
     ad_vector_t getAngularAccelerationCppAd(const ad_vector_t& state,
