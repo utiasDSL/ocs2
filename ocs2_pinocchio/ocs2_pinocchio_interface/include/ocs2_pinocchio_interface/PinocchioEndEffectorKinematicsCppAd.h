@@ -132,31 +132,17 @@ class PinocchioEndEffectorKinematicsCppAd final
 
     // NOTE: making these public so I can use forward kinematics as components
     // of other auto-differentiated models
-    ad_vector_t getPositionCppAd(
-        PinocchioInterfaceCppAd& pinocchioInterfaceCppAd,
-        const PinocchioStateInputMapping<ad_scalar_t>& mapping,
-        const ad_vector_t& state);
-    ad_vector_t getVelocityCppAd(
-        PinocchioInterfaceCppAd& pinocchioInterfaceCppAd,
-        const PinocchioStateInputMapping<ad_scalar_t>& mapping,
-        const ad_vector_t& state, const ad_vector_t& input);
-    ad_vector_t getAccelerationCppAd(
-        PinocchioInterfaceCppAd& pinocchioInterfaceCppAd,
-        const PinocchioStateInputMapping<ad_scalar_t>& mapping,
-        const ad_vector_t& state, const ad_vector_t& input);
+    ad_vector_t getPositionCppAd(const ad_vector_t& state);
+    ad_vector_t getVelocityCppAd(const ad_vector_t& state,
+                                 const ad_vector_t& input);
+    ad_vector_t getAccelerationCppAd(const ad_vector_t& state,
+                                     const ad_vector_t& input);
 
-    ad_quaternion_t getOrientationCppAd(
-        PinocchioInterfaceCppAd& pinocchioInterfaceCppAd,
-        const PinocchioStateInputMapping<ad_scalar_t>& mapping,
-        const ad_vector_t& state);
-    ad_vector_t getAngularVelocityCppAd(
-        PinocchioInterfaceCppAd& pinocchioInterfaceCppAd,
-        const PinocchioStateInputMapping<ad_scalar_t>& mapping,
-        const ad_vector_t& state, const ad_vector_t& input);
-    ad_vector_t getAngularAccelerationCppAd(
-        PinocchioInterfaceCppAd& pinocchioInterfaceCppAd,
-        const PinocchioStateInputMapping<ad_scalar_t>& mapping,
-        const ad_vector_t& state, const ad_vector_t& input);
+    ad_quaternion_t getOrientationCppAd(const ad_vector_t& state);
+    ad_vector_t getAngularVelocityCppAd(const ad_vector_t& state,
+                                        const ad_vector_t& input);
+    ad_vector_t getAngularAccelerationCppAd(const ad_vector_t& state,
+                                            const ad_vector_t& input);
 
    private:
     PinocchioEndEffectorKinematicsCppAd(
@@ -166,6 +152,11 @@ class PinocchioEndEffectorKinematicsCppAd final
         PinocchioInterfaceCppAd& pinocchioInterfaceCppAd,
         const PinocchioStateInputMapping<ad_scalar_t>& mapping,
         const ad_vector_t& state, const ad_vector_t& params);
+
+    // actually want to save these so they don't need to be passed into all the
+    // CppAD methods.
+    std::unique_ptr<PinocchioInterfaceCppAd> pinocchioInterfaceCppAdPtr_;
+    std::unique_ptr<PinocchioStateInputMapping<ad_scalar_t>> pinocchioMappingPtr_;
 
     std::unique_ptr<CppAdInterface> positionCppAdInterfacePtr_;
     std::unique_ptr<CppAdInterface> velocityCppAdInterfacePtr_;

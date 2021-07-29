@@ -84,10 +84,16 @@ PinocchioEndEffectorKinematicsCppAd::PinocchioEndEffectorKinematicsCppAd(
         mapping.clone());
     mappingPtr->setPinocchioInterface(pinocchioInterfaceCppAd);
 
+    // Initialize the class-member versions
+    pinocchioInterfaceCppAdPtr_.reset(new PinocchioInterfaceCppAd(pinocchioInterface.toCppAd()));
+
+    pinocchioMappingPtr_.reset(mapping.clone());
+    pinocchioMappingPtr_->setPinocchioInterface(*pinocchioInterfaceCppAdPtr_.get());
+
     // position function
     auto positionFunc = [&, this](const ad_vector_t& x, ad_vector_t& y) {
         updateCallback(x, pinocchioInterfaceCppAd);
-        y = getPositionCppAd(pinocchioInterfaceCppAd, *mappingPtr, x);
+        y = getPositionCppAd(x);
     };
     positionCppAdInterfacePtr_.reset(new CppAdInterface(
         positionFunc, stateDim, modelName + "_position", modelFolder));
@@ -97,8 +103,7 @@ PinocchioEndEffectorKinematicsCppAd::PinocchioEndEffectorKinematicsCppAd(
         const ad_vector_t state = x.head(stateDim);
         const ad_vector_t input = x.tail(inputDim);
         updateCallback(state, pinocchioInterfaceCppAd);
-        y = getVelocityCppAd(pinocchioInterfaceCppAd, *mappingPtr, state,
-                             input);
+        y = getVelocityCppAd(state, input);
     };
     velocityCppAdInterfacePtr_.reset(
         new CppAdInterface(velocityFunc, stateDim + inputDim,
@@ -168,12 +173,11 @@ const std::vector<std::string>& PinocchioEndEffectorKinematicsCppAd::getIds()
 /******************************************************************************************************/
 /******************************************************************************************************/
 ad_vector_t PinocchioEndEffectorKinematicsCppAd::getPositionCppAd(
-    PinocchioInterfaceCppAd& pinocchioInterfaceCppAd,
-    const PinocchioStateInputMapping<ad_scalar_t>& mapping,
     const ad_vector_t& state) {
-    const auto& model = pinocchioInterfaceCppAd.getModel();
-    auto& data = pinocchioInterfaceCppAd.getData();
-    const ad_vector_t q = mapping.getPinocchioJointPosition(state);
+    const auto& model = pinocchioInterfaceCppAdPtr_->getModel();
+    auto& data = pinocchioInterfaceCppAdPtr_->getData();
+    const ad_vector_t q =
+        pinocchioMappingPtr_->getPinocchioJointPosition(state);
 
     pinocchio::forwardKinematics(model, data, q);
     pinocchio::updateFramePlacements(model, data);
@@ -226,16 +230,15 @@ PinocchioEndEffectorKinematicsCppAd::getPositionLinearApproximation(
 /******************************************************************************************************/
 /******************************************************************************************************/
 ad_vector_t PinocchioEndEffectorKinematicsCppAd::getVelocityCppAd(
-    PinocchioInterfaceCppAd& pinocchioInterfaceCppAd,
-    const PinocchioStateInputMapping<ad_scalar_t>& mapping,
     const ad_vector_t& state, const ad_vector_t& input) {
-
     const pinocchio::ReferenceFrame rf =
         pinocchio::ReferenceFrame::LOCAL_WORLD_ALIGNED;
-    const auto& model = pinocchioInterfaceCppAd.getModel();
-    auto& data = pinocchioInterfaceCppAd.getData();
-    const ad_vector_t q = mapping.getPinocchioJointPosition(state);
-    const ad_vector_t v = mapping.getPinocchioJointVelocity(state, input);
+    const auto& model = pinocchioInterfaceCppAdPtr_->getModel();
+    auto& data = pinocchioInterfaceCppAdPtr_->getData();
+    const ad_vector_t q =
+        pinocchioMappingPtr_->getPinocchioJointPosition(state);
+    const ad_vector_t v =
+        pinocchioMappingPtr_->getPinocchioJointVelocity(state, input);
 
     pinocchio::forwardKinematics(model, data, q, v);
 
@@ -249,19 +252,17 @@ ad_vector_t PinocchioEndEffectorKinematicsCppAd::getVelocityCppAd(
 }
 
 ad_vector_t PinocchioEndEffectorKinematicsCppAd::getAccelerationCppAd(
-    PinocchioInterfaceCppAd& pinocchioInterfaceCppAd,
-    const PinocchioStateInputMapping<ad_scalar_t>& mapping,
     const ad_vector_t& state, const ad_vector_t& input) {
-
     const pinocchio::ReferenceFrame rf =
         pinocchio::ReferenceFrame::LOCAL_WORLD_ALIGNED;
-    const auto& model = pinocchioInterfaceCppAd.getModel();
-    auto& data = pinocchioInterfaceCppAd.getData();
-
-    const ad_vector_t q = mapping.getPinocchioJointPosition(state);
-    const ad_vector_t v = mapping.getPinocchioJointVelocity(state, input);
+    const auto& model = pinocchioInterfaceCppAdPtr_->getModel();
+    auto& data = pinocchioInterfaceCppAdPtr_->getData();
+    const ad_vector_t q =
+        pinocchioMappingPtr_->getPinocchioJointPosition(state);
+    const ad_vector_t v =
+        pinocchioMappingPtr_->getPinocchioJointVelocity(state, input);
     const ad_vector_t a =
-        mapping.getPinocchioJointAcceleration(state, input);  // TODO
+        pinocchioMappingPtr_->getPinocchioJointAcceleration(state, input);
 
     // NOTE: second-order forward kinematics
     pinocchio::forwardKinematics(model, data, q, v, a);
@@ -275,14 +276,13 @@ ad_vector_t PinocchioEndEffectorKinematicsCppAd::getAccelerationCppAd(
     return accelerations;
 }
 
-PinocchioEndEffectorKinematicsCppAd::ad_quaternion_t PinocchioEndEffectorKinematicsCppAd::getOrientationCppAd(
-    PinocchioInterfaceCppAd& pinocchioInterfaceCppAd,
-    const PinocchioStateInputMapping<ad_scalar_t>& mapping,
+PinocchioEndEffectorKinematicsCppAd::ad_quaternion_t
+PinocchioEndEffectorKinematicsCppAd::getOrientationCppAd(
     const ad_vector_t& state) {
-
-    const auto& model = pinocchioInterfaceCppAd.getModel();
-    auto& data = pinocchioInterfaceCppAd.getData();
-    const ad_vector_t q = mapping.getPinocchioJointPosition(state);
+    const auto& model = pinocchioInterfaceCppAdPtr_->getModel();
+    auto& data = pinocchioInterfaceCppAdPtr_->getData();
+    const ad_vector_t q =
+        pinocchioMappingPtr_->getPinocchioJointPosition(state);
 
     pinocchio::forwardKinematics(model, data, q);
     pinocchio::updateFramePlacements(model, data);
@@ -298,16 +298,15 @@ PinocchioEndEffectorKinematicsCppAd::ad_quaternion_t PinocchioEndEffectorKinemat
 }
 
 ad_vector_t PinocchioEndEffectorKinematicsCppAd::getAngularVelocityCppAd(
-    PinocchioInterfaceCppAd& pinocchioInterfaceCppAd,
-    const PinocchioStateInputMapping<ad_scalar_t>& mapping,
     const ad_vector_t& state, const ad_vector_t& input) {
-
     const pinocchio::ReferenceFrame rf =
         pinocchio::ReferenceFrame::LOCAL_WORLD_ALIGNED;
-    const auto& model = pinocchioInterfaceCppAd.getModel();
-    auto& data = pinocchioInterfaceCppAd.getData();
-    const ad_vector_t q = mapping.getPinocchioJointPosition(state);
-    const ad_vector_t v = mapping.getPinocchioJointVelocity(state, input);
+    const auto& model = pinocchioInterfaceCppAdPtr_->getModel();
+    auto& data = pinocchioInterfaceCppAdPtr_->getData();
+    const ad_vector_t q =
+        pinocchioMappingPtr_->getPinocchioJointPosition(state);
+    const ad_vector_t v =
+        pinocchioMappingPtr_->getPinocchioJointVelocity(state, input);
 
     pinocchio::forwardKinematics(model, data, q, v);
 
@@ -321,18 +320,17 @@ ad_vector_t PinocchioEndEffectorKinematicsCppAd::getAngularVelocityCppAd(
 }
 
 ad_vector_t PinocchioEndEffectorKinematicsCppAd::getAngularAccelerationCppAd(
-    PinocchioInterfaceCppAd& pinocchioInterfaceCppAd,
-    const PinocchioStateInputMapping<ad_scalar_t>& mapping,
     const ad_vector_t& state, const ad_vector_t& input) {
-
     const pinocchio::ReferenceFrame rf =
         pinocchio::ReferenceFrame::LOCAL_WORLD_ALIGNED;
-    const auto& model = pinocchioInterfaceCppAd.getModel();
-    auto& data = pinocchioInterfaceCppAd.getData();
-    const ad_vector_t q = mapping.getPinocchioJointPosition(state);
-    const ad_vector_t v = mapping.getPinocchioJointVelocity(state, input);
+    const auto& model = pinocchioInterfaceCppAdPtr_->getModel();
+    auto& data = pinocchioInterfaceCppAdPtr_->getData();
+    const ad_vector_t q =
+        pinocchioMappingPtr_->getPinocchioJointPosition(state);
+    const ad_vector_t v =
+        pinocchioMappingPtr_->getPinocchioJointVelocity(state, input);
     const ad_vector_t a =
-        mapping.getPinocchioJointAcceleration(state, input);  // TODO
+        pinocchioMappingPtr_->getPinocchioJointAcceleration(state, input);
 
     // NOTE: second-order forward kinematics
     pinocchio::forwardKinematics(model, data, q, v, a);
