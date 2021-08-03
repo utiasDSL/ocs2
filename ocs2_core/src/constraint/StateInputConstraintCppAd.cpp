@@ -43,7 +43,10 @@ void StateInputConstraintCppAd::initialize(size_t stateDim, size_t inputDim, siz
     const ad_vector_t input = x.tail(inputDim);
     y = this->constraintFunction(time, state, input, p);
   };
+  std::cerr << "about to create CppAdInterface" << std::endl;
   adInterfacePtr_.reset(new ocs2::CppAdInterface(constraintAd, 1 + stateDim + inputDim, parameterDim, modelName, modelFolder));
+
+  std::cerr << "done create CppAdInterface" << std::endl;
 
   ocs2::CppAdInterface::ApproximationOrder orderCppAd;
   if (getOrder() == ConstraintOrder::Linear) {
@@ -51,6 +54,8 @@ void StateInputConstraintCppAd::initialize(size_t stateDim, size_t inputDim, siz
   } else {
     orderCppAd = ocs2::CppAdInterface::ApproximationOrder::Second;
   }
+
+  std::cerr << "about to compile tray balance model" << std::endl;
 
   if (recompileLibraries) {
     adInterfacePtr_->createModels(orderCppAd, verbose);
