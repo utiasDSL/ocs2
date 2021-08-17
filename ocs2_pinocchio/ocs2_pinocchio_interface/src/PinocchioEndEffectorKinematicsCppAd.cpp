@@ -303,7 +303,6 @@ PinocchioEndEffectorKinematicsCppAd::getOrientationCppAd(
 
 ad_vector_t PinocchioEndEffectorKinematicsCppAd::getAngularVelocityCppAd(
     const ad_vector_t& state, const ad_vector_t& input) {
-    std::cerr << "zero" << std::endl;
 
     const pinocchio::ReferenceFrame rf =
         pinocchio::ReferenceFrame::LOCAL_WORLD_ALIGNED;
@@ -314,11 +313,7 @@ ad_vector_t PinocchioEndEffectorKinematicsCppAd::getAngularVelocityCppAd(
     const ad_vector_t v =
         pinocchioMappingPtr_->getPinocchioJointVelocity(state, input);
 
-    std::cerr << "one" << std::endl;
-
     pinocchio::forwardKinematics(model, data, q, v);
-
-    std::cerr << "two" << std::endl;
 
     ad_vector_t angular_velocities(3 * endEffectorFrameIds_.size());
     for (int i = 0; i < endEffectorFrameIds_.size(); i++) {
@@ -326,7 +321,6 @@ ad_vector_t PinocchioEndEffectorKinematicsCppAd::getAngularVelocityCppAd(
         angular_velocities.segment<3>(3 * i) =
             pinocchio::getFrameVelocity(model, data, frameId, rf).angular();
     }
-    std::cerr << "three" << std::endl;
     return angular_velocities;
 }
 
