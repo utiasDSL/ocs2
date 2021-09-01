@@ -53,6 +53,15 @@ PinocchioGeometryInterface::PinocchioGeometryInterface(const PinocchioInterface&
   addCollisionObjectPairs(pinocchioInterface, collisionObjectPairs);
 }
 
+
+PinocchioGeometryInterface::PinocchioGeometryInterface(const
+        PinocchioInterface& pinocchioInterface)
+        : geometryModelPtr_(new pinocchio::GeometryModel) {
+    // Build the model but don't add any collision pairs yet
+  buildGeomFromPinocchioInterface(pinocchioInterface, *geometryModelPtr_);
+  // addCollisionObjectPairs(pinocchioInterface, collisionObjectPairs);
+}
+
 PinocchioGeometryInterface::PinocchioGeometryInterface(const PinocchioInterface& pinocchioInterface,
                                                        const std::vector<std::pair<std::string, std::string>>& collisionLinkPairs,
                                                        const std::vector<std::pair<size_t, size_t>>& collisionObjectPairs)
@@ -61,6 +70,27 @@ PinocchioGeometryInterface::PinocchioGeometryInterface(const PinocchioInterface&
 
   addCollisionObjectPairs(pinocchioInterface, collisionObjectPairs);
   addCollisionLinkPairs(pinocchioInterface, collisionLinkPairs);
+}
+
+void PinocchioGeometryInterface::addGeometryObjects(const std::vector<pinocchio::GeometryObject>& geomObjects) {
+    for (int i = 0; i < geomObjects.size(); ++i) {
+        geometryModelPtr_->addGeometryObject(geomObjects[i]);
+    }
+}
+
+void PinocchioGeometryInterface::addGeometryObjects(const pinocchio::GeometryModel& geomModel) {
+    for (int i = 0; i < geomModel.ngeoms; ++i) {
+        geometryModelPtr_->addGeometryObject(geomModel.geometryObjects[i]);
+    }
+}
+
+
+void PinocchioGeometryInterface::addCollisionPairsByName(const std::vector<std::pair<std::string, std::string>>& collisionObjectPairs) {
+  for (const auto& pair : collisionObjectPairs) {
+      auto id1 = geometryModelPtr_->getGeometryId(pair.first);
+      auto id2 = geometryModelPtr_->getGeometryId(pair.second);
+    geometryModelPtr_->addCollisionPair(pinocchio::CollisionPair{id1, id2});
+  }
 }
 
 /******************************************************************************************************/
