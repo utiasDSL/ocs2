@@ -119,6 +119,9 @@ using namespace pybind11::literals;
              "x"_a.noconvert(), "u"_a.noconvert())                                                                                      \
         .def("stateInputEqualityConstraintLagrangian", &PY_INTERFACE::stateInputEqualityConstraintLagrangian, "t"_a, "x"_a.noconvert(), \
              "u"_a.noconvert())                                                                                                         \
+        .def("stateInputInequalityConstraint", &PY_INTERFACE::stateInputInequalityConstraint, "name"_a, "t"_a, "x"_a.noconvert(), \
+             "u"_a.noconvert())                                                                                                         \
+        .def("stateInequalityConstraint", &PY_INTERFACE::stateInequalityConstraint, "name"_a, "t"_a, "x"_a.noconvert())  \
         .def("visualizeTrajectory", &PY_INTERFACE::visualizeTrajectory, "t"_a.noconvert(), "x"_a.noconvert(), "u"_a.noconvert(),        \
              "speed"_a);                                                                                                                \
   }
