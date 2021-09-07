@@ -98,6 +98,19 @@ void PythonInterface::getMpcSolution(scalar_array_t& t, vector_array_t& x, vecto
   u = mpcMrtInterface_->getPolicy().inputTrajectory_;
 }
 
+void PythonInterface::evaluateMpcSolution(scalar_t current_time, Eigen::Ref<const vector_t> current_state, Eigen::Ref<vector_t> opt_state, Eigen::Ref<vector_t> opt_input) {
+    // updatePolicy loads a new policy if one is available
+    // evaluatePolicy computes the input given the time and state, using the current policy
+    // advanceMpc actually computes the new policy; this is the expensive operation
+  mpcMrtInterface_->updatePolicy();
+  size_t mode = 0;
+  vector_t x_temp(opt_state.rows());
+  vector_t u_temp(opt_input.rows());
+  mpcMrtInterface_->evaluatePolicy(current_time, current_state, x_temp, u_temp, mode);
+  opt_state = x_temp;
+  opt_input = u_temp;
+}
+
 /******************************************************************************************************/
 /******************************************************************************************************/
 /******************************************************************************************************/

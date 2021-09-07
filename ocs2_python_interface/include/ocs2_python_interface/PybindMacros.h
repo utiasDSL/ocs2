@@ -107,6 +107,7 @@ using namespace pybind11::literals;
         .def("reset", &PY_INTERFACE::reset, "targetTrajectories"_a)                                                                     \
         .def("advanceMpc", &PY_INTERFACE::advanceMpc)                                                                                   \
         .def("getMpcSolution", &PY_INTERFACE::getMpcSolution, "t"_a.noconvert(), "x"_a.noconvert(), "u"_a.noconvert())                  \
+        .def("evaluateMpcSolution", &PY_INTERFACE::evaluateMpcSolution, "current_time"_a.noconvert(), "current_state"_a.noconvert(), "opt_state"_a.noconvert(), "opt_input"_a.noconvert())                  \
         .def("getLinearFeedbackGain", &PY_INTERFACE::getLinearFeedbackGain, "t"_a.noconvert())                                          \
         .def("flowMap", &PY_INTERFACE::flowMap, "t"_a, "x"_a.noconvert(), "u"_a.noconvert())                                            \
         .def("flowMapLinearApproximation", &PY_INTERFACE::flowMapLinearApproximation, "t"_a, "x"_a.noconvert(), "u"_a.noconvert())      \

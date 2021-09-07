@@ -106,6 +106,8 @@ class PythonInterface {
    */
   void getMpcSolution(scalar_array_t& t, vector_array_t& x, vector_array_t& u);
 
+  void evaluateMpcSolution(scalar_t current_time, Eigen::Ref<const vector_t> current_state, Eigen::Ref<vector_t> opt_state, Eigen::Ref<vector_t> opt_input);
+
   /**
    * @brief Obtains feedback gain matrix, if the underlying MPC algorithm computes it
    * @param[in] t: Query time
