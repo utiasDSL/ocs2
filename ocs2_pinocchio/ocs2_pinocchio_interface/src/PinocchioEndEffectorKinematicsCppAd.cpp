@@ -275,7 +275,7 @@ ad_vector_t PinocchioEndEffectorKinematicsCppAd::getAccelerationCppAd(
     for (int i = 0; i < endEffectorFrameIds_.size(); i++) {
         const size_t frameId = endEffectorFrameIds_[i];
         accelerations.segment<3>(3 * i) =
-            pinocchio::getFrameAcceleration(model, data, frameId, rf).linear();
+            pinocchio::getFrameClassicalAcceleration(model, data, frameId, rf).linear();
     }
     return accelerations;
 }
@@ -344,7 +344,7 @@ ad_vector_t PinocchioEndEffectorKinematicsCppAd::getAngularAccelerationCppAd(
     for (int i = 0; i < endEffectorFrameIds_.size(); i++) {
         const size_t frameId = endEffectorFrameIds_[i];
         angular_accelerations.segment<3>(3 * i) =
-            pinocchio::getFrameAcceleration(model, data, frameId, rf).angular();
+            pinocchio::getFrameClassicalAcceleration(model, data, frameId, rf).angular();
     }
     return angular_accelerations;
 }

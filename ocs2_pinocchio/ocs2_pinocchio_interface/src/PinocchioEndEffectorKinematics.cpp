@@ -127,7 +127,7 @@ auto PinocchioEndEffectorKinematics::getAcceleration(const vector_t& state, cons
 
   std::vector<vector3_t> accelerations;
   for (const auto& frameId : endEffectorFrameIds_) {
-    accelerations.emplace_back(pinocchio::getFrameAcceleration(model, data, frameId, rf).linear());
+    accelerations.emplace_back(pinocchio::getFrameClassicalAcceleration(model, data, frameId, rf).linear());
   }
   return accelerations;
 }
@@ -184,7 +184,7 @@ auto PinocchioEndEffectorKinematics::getAngularAcceleration(const vector_t& stat
 
   std::vector<vector3_t> angular_accelerations;
   for (const auto& frameId : endEffectorFrameIds_) {
-    angular_accelerations.emplace_back(pinocchio::getFrameAcceleration(model, data, frameId, rf).angular());
+    angular_accelerations.emplace_back(pinocchio::getFrameClassicalAcceleration(model, data, frameId, rf).angular());
   }
   return angular_accelerations;
 }
