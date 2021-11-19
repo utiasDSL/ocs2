@@ -116,6 +116,82 @@ auto PinocchioEndEffectorKinematics::getVelocity(const vector_t& state, const ve
 /******************************************************************************************************/
 /******************************************************************************************************/
 /******************************************************************************************************/
+auto PinocchioEndEffectorKinematics::getAcceleration(const vector_t& state, const vector_t& input) const -> std::vector<vector3_t> {
+  if (pinocchioInterfacePtr_ == nullptr) {
+    throw std::runtime_error("[PinocchioEndEffectorKinematics] pinocchioInterfacePtr_ is not set. Use setPinocchioInterface()");
+  }
+
+  const pinocchio::ReferenceFrame rf = pinocchio::ReferenceFrame::LOCAL_WORLD_ALIGNED;
+  const pinocchio::Model& model = pinocchioInterfacePtr_->getModel();
+  const pinocchio::Data& data = pinocchioInterfacePtr_->getData();
+
+  std::vector<vector3_t> accelerations;
+  for (const auto& frameId : endEffectorFrameIds_) {
+    accelerations.emplace_back(pinocchio::getFrameAcceleration(model, data, frameId, rf).linear());
+  }
+  return accelerations;
+}
+
+/******************************************************************************************************/
+/******************************************************************************************************/
+/******************************************************************************************************/
+auto PinocchioEndEffectorKinematics::getOrientation(const vector_t& state) const -> std::vector<quaternion_t> {
+  if (pinocchioInterfacePtr_ == nullptr) {
+    throw std::runtime_error("[PinocchioEndEffectorKinematics] pinocchioInterfacePtr_ is not set. Use setPinocchioInterface()");
+  }
+
+  const pinocchio::ReferenceFrame rf = pinocchio::ReferenceFrame::LOCAL_WORLD_ALIGNED;
+  const pinocchio::Model& model = pinocchioInterfacePtr_->getModel();
+  const pinocchio::Data& data = pinocchioInterfacePtr_->getData();
+
+  std::vector<quaternion_t> orientations;
+  for (const auto& frameId : endEffectorFrameIds_) {
+    orientations.emplace_back(data.oMf[frameId].rotation());
+  }
+  return orientations;
+}
+
+/******************************************************************************************************/
+/******************************************************************************************************/
+/******************************************************************************************************/
+auto PinocchioEndEffectorKinematics::getAngularVelocity(const vector_t& state, const vector_t& input) const -> std::vector<vector3_t> {
+  if (pinocchioInterfacePtr_ == nullptr) {
+    throw std::runtime_error("[PinocchioEndEffectorKinematics] pinocchioInterfacePtr_ is not set. Use setPinocchioInterface()");
+  }
+
+  const pinocchio::ReferenceFrame rf = pinocchio::ReferenceFrame::LOCAL_WORLD_ALIGNED;
+  const pinocchio::Model& model = pinocchioInterfacePtr_->getModel();
+  const pinocchio::Data& data = pinocchioInterfacePtr_->getData();
+
+  std::vector<vector3_t> angular_velocities;
+  for (const auto& frameId : endEffectorFrameIds_) {
+    angular_velocities.emplace_back(pinocchio::getFrameVelocity(model, data, frameId, rf).angular());
+  }
+  return angular_velocities;
+}
+
+/******************************************************************************************************/
+/******************************************************************************************************/
+/******************************************************************************************************/
+auto PinocchioEndEffectorKinematics::getAngularAcceleration(const vector_t& state, const vector_t& input) const -> std::vector<vector3_t> {
+  if (pinocchioInterfacePtr_ == nullptr) {
+    throw std::runtime_error("[PinocchioEndEffectorKinematics] pinocchioInterfacePtr_ is not set. Use setPinocchioInterface()");
+  }
+
+  const pinocchio::ReferenceFrame rf = pinocchio::ReferenceFrame::LOCAL_WORLD_ALIGNED;
+  const pinocchio::Model& model = pinocchioInterfacePtr_->getModel();
+  const pinocchio::Data& data = pinocchioInterfacePtr_->getData();
+
+  std::vector<vector3_t> angular_accelerations;
+  for (const auto& frameId : endEffectorFrameIds_) {
+    angular_accelerations.emplace_back(pinocchio::getFrameAcceleration(model, data, frameId, rf).angular());
+  }
+  return angular_accelerations;
+}
+
+/******************************************************************************************************/
+/******************************************************************************************************/
+/******************************************************************************************************/
 std::vector<VectorFunctionLinearApproximation> PinocchioEndEffectorKinematics::getPositionLinearApproximation(const vector_t& state) const {
   if (pinocchioInterfacePtr_ == nullptr) {
     throw std::runtime_error("[PinocchioEndEffectorKinematics] pinocchioInterfacePtr_ is not set. Use setPinocchioInterface()");

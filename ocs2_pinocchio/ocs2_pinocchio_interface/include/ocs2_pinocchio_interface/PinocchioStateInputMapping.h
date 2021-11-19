@@ -53,6 +53,11 @@ class PinocchioStateInputMapping {
   /** Get the pinocchio joint velocity from OCS2 state and input vectors. */
   virtual vector_t getPinocchioJointVelocity(const vector_t& state, const vector_t& input) const = 0;
 
+  // Get joint accelerations. TODO: don't really want this pure virtual b/c I don't want to break a bunch of stuff, but also need a sane default implementation
+  virtual vector_t getPinocchioJointAcceleration(const vector_t& state, const vector_t& input) const {
+    return vector_t(0); // empty vector
+  }
+
   /** Mapps pinocchio jacobians dfdq, dfdv to OCS2 jacobians dfdx, dfdu. */
   virtual std::pair<matrix_t, matrix_t> getOcs2Jacobian(const vector_t& state, const matrix_t& Jq, const matrix_t& Jv) const = 0;
 

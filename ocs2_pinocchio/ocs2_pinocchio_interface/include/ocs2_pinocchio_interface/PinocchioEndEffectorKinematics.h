@@ -94,6 +94,34 @@ class PinocchioEndEffectorKinematics final : public EndEffectorKinematics<scalar
    */
   std::vector<vector3_t> getVelocity(const vector_t& state, const vector_t& input) const override;
 
+  /** Get the end effector linear acceleration vectors.
+   * @note requires pinocchioInterface to be updated with:
+   *       pinocchio::forwardKinematics(model, data, q, v)
+   */
+  std::vector<vector3_t> getAcceleration(const vector_t& state, const vector_t& input) const;
+
+  /** Get the end effector orientation quaternions.
+   * @note requires pinocchioInterface to be updated with:
+   *       pinocchio::forwardKinematics(model, data, q)
+   *       pinocchio::updateFramePlacements(model, data)
+   */
+  std::vector<quaternion_t> getOrientation(const vector_t& state) const;
+
+  /** Get the end effector angular velocity vectors.
+   * @note requires pinocchioInterface to be updated with:
+   *       pinocchio::forwardKinematics(model, data, q)
+   *       pinocchio::updateFramePlacements(model, data)
+   */
+  std::vector<vector3_t> getAngularVelocity(const vector_t& state, const vector_t& input) const;
+
+  /** Get the end effector angular acceleration vectors.
+   * @note requires pinocchioInterface to be updated with:
+   *       pinocchio::forwardKinematics(model, data, q)
+   *       pinocchio::updateFramePlacements(model, data)
+   */
+  std::vector<vector3_t> getAngularAcceleration(const vector_t& state, const vector_t& input) const;
+
+
   /** Get the end effector orientation error.
    * @note requires pinocchioInterface to be updated with:
    *       pinocchio::forwardKinematics(model, data, q)
