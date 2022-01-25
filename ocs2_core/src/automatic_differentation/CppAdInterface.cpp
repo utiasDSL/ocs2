@@ -45,6 +45,8 @@ CppAdInterface::CppAdInterface(ad_parameterized_function_t adFunction, size_t va
       folderName_(std::move(folderName)),
       compileFlags_(std::move(compileFlags)) {
   setFolderNames();
+  tapedInputValue_.setOnes(variableDim);
+  tapedParameterValue_.setOnes(parameterDim);
 }
 
 /******************************************************************************************************/
@@ -73,7 +75,8 @@ void CppAdInterface::createModels(ApproximationOrder approximationOrder, bool ve
 
   // set and declare independent variables and start tape recording
   ad_vector_t xp(variableDim_ + parameterDim_);
-  xp.setOnes();  // Ones are better than zero, to prevent devision by zero in taping
+  // xp.setOnes();  // Ones are better than zero, to prevent devision by zero in taping
+  xp << tapedInputValue_, tapedParameterValue_;
   CppAD::Independent(xp);
 
   // Split in variables and parameters
@@ -391,6 +394,14 @@ cppad_sparsity::SparsityPattern CppAdInterface::createHessianSparsity(ad_fun_t& 
   auto trueSparsity = cppad_sparsity::getHessianSparsityPattern(fun);
   auto variableSparsity = cppad_sparsity::getHessianVariableSparsity(variableDim_, parameterDim_);
   return cppad_sparsity::getIntersection(trueSparsity, variableSparsity);
+}
+
+void CppAdInterface::setTapedParameterValue(const ad_vector_t& parameters) {
+    tapedParameterValue_ = parameters;
+}
+
+void CppAdInterface::setTapedInputValue(const ad_vector_t& input) {
+    tapedInputValue_ = input;
 }
 
 }  // namespace ocs2

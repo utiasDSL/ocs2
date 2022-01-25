@@ -56,6 +56,9 @@ class StateInputConstraintCppAd : public StateInputConstraint {
   void initialize(size_t stateDim, size_t inputDim, size_t parameterDim, const std::string& modelName,
                   const std::string& modelFolder = "/tmp/ocs2", bool recompileLibraries = true, bool verbose = true);
 
+  void initialize(size_t stateDim, size_t inputDim, ad_vector_t tapedParameterValue, const std::string& modelName,
+                  const std::string& modelFolder = "/tmp/ocs2", bool recompileLibraries = true, bool verbose = true);
+
   /** Get the parameter vector */
   virtual vector_t getParameters(scalar_t time) const { return vector_t(0); };
 

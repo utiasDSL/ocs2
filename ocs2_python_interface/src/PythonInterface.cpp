@@ -229,8 +229,6 @@ vector_t PythonInterface::stateInputEqualityConstraint(
 
 // Get the value of the constraint underlying a soft state-input inequality
 // constraint by name
-// TODO name is confusing, because it actually only works to get underlying
-// constraint of a soft constraint (which is in fact a cost)
 vector_t PythonInterface::softStateInputInequalityConstraint(
     const std::string& name, scalar_t t, Eigen::Ref<const vector_t> x,
     Eigen::Ref<const vector_t> u) {

@@ -59,6 +59,37 @@ void StateInputConstraintCppAd::initialize(size_t stateDim, size_t inputDim, siz
   }
 }
 
+void StateInputConstraintCppAd::initialize(size_t stateDim, size_t inputDim,
+        ad_vector_t tapedParameterValue, const std::string& modelName, const
+        std::string& modelFolder, bool recompileLibraries, bool verbose) {
+
+  auto constraintAd = [=](const ad_vector_t& x, const ad_vector_t& p, ad_vector_t& y) {
+    assert(x.rows() == 1 + stateDim + inputDim);
+    const ad_scalar_t time = x(0);
+    const ad_vector_t state = x.segment(1, stateDim);
+    const ad_vector_t input = x.tail(inputDim);
+    y = this->constraintFunction(time, state, input, p);
+  };
+  adInterfacePtr_.reset(new ocs2::CppAdInterface(constraintAd, 1 + stateDim + inputDim, tapedParameterValue.size(), modelName, modelFolder));
+
+  // pass taped parameters through
+  adInterfacePtr_->setTapedParameterValue(tapedParameterValue);
+
+  ocs2::CppAdInterface::ApproximationOrder orderCppAd;
+  if (getOrder() == ConstraintOrder::Linear) {
+    orderCppAd = ocs2::CppAdInterface::ApproximationOrder::First;
+  } else {
+    orderCppAd = ocs2::CppAdInterface::ApproximationOrder::Second;
+  }
+
+  if (recompileLibraries) {
+    adInterfacePtr_->createModels(orderCppAd, verbose);
+  } else {
+    adInterfacePtr_->loadModelsIfAvailable(orderCppAd, verbose);
+  }
+
+}
+
 /******************************************************************************************************/
 /******************************************************************************************************/
 /******************************************************************************************************/

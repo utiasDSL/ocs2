@@ -165,6 +165,10 @@ class CppAdInterface {
    */
   matrix_t getHessian(const vector_t& w, const vector_t& x, const vector_t& p = vector_t(0)) const;
 
+  void setTapedParameterValue(const ad_vector_t& parameters);
+
+  void setTapedInputValue(const ad_vector_t& input);
+
  private:
   /**
    * Defines library folder names
@@ -232,6 +236,9 @@ class CppAdInterface {
   size_t rangeDim_ = 0;
   size_t nnzJacobian_ = 0;
   size_t nnzHessian_ = 0;
+
+  ad_vector_t tapedInputValue_;
+  ad_vector_t tapedParameterValue_;
 
   // Names
   std::string modelName_;
