@@ -44,6 +44,7 @@ struct Transcription {
   PerformanceIndex performance;
   VectorFunctionLinearApproximation dynamics;
   ScalarFunctionQuadraticApproximation cost;
+  // TODO need to add ineq and box here too
   VectorFunctionLinearApproximation constraints;
   VectorFunctionLinearApproximation constraintsProjection;
 };

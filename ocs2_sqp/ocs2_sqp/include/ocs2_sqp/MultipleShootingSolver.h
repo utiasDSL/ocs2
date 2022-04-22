@@ -150,7 +150,9 @@ class MultipleShootingSolver : public SolverBase {
   // LQ approximation
   std::vector<VectorFunctionLinearApproximation> dynamics_;
   std::vector<ScalarFunctionQuadraticApproximation> cost_;
-  std::vector<VectorFunctionLinearApproximation> constraints_;
+  std::vector<VectorFunctionLinearApproximation> constraints_;  // equality constraints
+  std::vector<VectorFunctionLinearApproximation> ineqConstraints_;
+  std::vector<VectorFunctionLinearApproximation> boxConstraints_;
   std::vector<VectorFunctionLinearApproximation> constraintsProjection_;
 
   // Iteration performance log

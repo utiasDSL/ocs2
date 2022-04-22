@@ -71,6 +71,7 @@ struct OptimalControlProblem {
   std::unique_ptr<StateConstraintCollection> stateEqualityConstraintPtr;
   /** Intermediate inequality constraints */
   std::unique_ptr<StateInputConstraintCollection> inequalityConstraintPtr;
+  // TODO: add here boxInequalityConstraintPtr as well?
   /** pre-jump constraints */
   std::unique_ptr<StateConstraintCollection> preJumpEqualityConstraintPtr;
   /** final constraints */

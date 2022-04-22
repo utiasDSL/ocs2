@@ -57,7 +57,23 @@ using namespace pybind11::literals;
            })                                                                                \
       .def("__len__", [](const VTYPE& v) { return v.size(); })                               \
       .def("__iter__", [](VTYPE& v) { return pybind11::make_iterator(v.begin(), v.end()); }, \
-           pybind11::keep_alive<0, 1>()); /* Keep vector alive while iterator is used */
+           pybind11::keep_alive<0, 1>()) /* Keep vector alive while iterator is used */ \
+      .def(pybind11::pickle(                                                                   \
+           [](const VTYPE& v) {                                                              \
+               pybind11::list l = pybind11::cast(v); \
+               return pybind11::make_tuple(l);                                               \
+           },                                                                                \
+           [](pybind11::tuple t) {                \
+           if (t.size() != 1) {                                                               \
+               throw std::runtime_error("Invalid state!"); \
+           }                                               \
+           VTYPE v; \
+           pybind11::list l = t[0].cast<pybind11::list>(); \
+           for (int i = 0; i < l.size(); ++i) { \
+                v.push_back(l[i].cast<VTYPE::value_type>()); \
+           } \
+           return v;             \
+      }));
 
 /**
  * @brief Convenience macro to bind robot interface with all required vectors.

@@ -129,6 +129,20 @@ matrix_t PythonInterface::getLinearFeedbackGain(scalar_t time) {
     return K;
 }
 
+vector_t PythonInterface::getBias(scalar_t time) {
+    vector_t bias;
+    mpcMrtInterface_->getBias(time, bias);
+    return bias;
+}
+
+
+LinearController PythonInterface::getLinearController() {
+    mpcMrtInterface_->updatePolicy();
+    LinearController controller;
+    mpcMrtInterface_->getLinearController(controller);
+    return controller;
+}
+
 /******************************************************************************************************/
 /******************************************************************************************************/
 /******************************************************************************************************/

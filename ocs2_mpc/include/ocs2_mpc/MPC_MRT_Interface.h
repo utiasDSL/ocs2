@@ -37,6 +37,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <thread>
 
 #include <ocs2_core/misc/Benchmark.h>
+#include <ocs2_core/control/LinearController.h>
 #include "ocs2_mpc/MPC_BASE.h"
 #include "ocs2_mpc/MRT_BASE.h"
 
@@ -82,6 +83,10 @@ class MPC_MRT_Interface final : public MRT_BASE {
    * @param [out] K
    */
   void getLinearFeedbackGain(scalar_t time, matrix_t& K);
+
+  void getBias(scalar_t time, vector_t& bias);
+
+  void getLinearController(LinearController& controller);
 
   /**
    * @brief Access the solver's internal value function

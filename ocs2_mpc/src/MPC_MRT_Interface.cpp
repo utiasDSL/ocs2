@@ -146,6 +146,22 @@ void MPC_MRT_Interface::getLinearFeedbackGain(scalar_t time, matrix_t& K) {
   controller->getFeedbackGain(time, K);
 }
 
+void MPC_MRT_Interface::getBias(scalar_t time, vector_t& bias) {
+  auto controller = dynamic_cast<LinearController*>(this->getPolicy().controllerPtr_.get());
+  if (controller == nullptr) {
+    throw std::runtime_error("[MPC_MRT_Interface::getBias] Bias only available with linear controller!");
+  }
+  controller->getBias(time, bias);
+}
+
+void MPC_MRT_Interface::getLinearController(LinearController& controller) {
+  LinearController* controller_ptr = dynamic_cast<LinearController*>(this->getPolicy().controllerPtr_.get());
+  if (controller_ptr == nullptr) {
+    throw std::runtime_error("[MPC_MRT_Interface::getLinearController] Need linear controller!");
+  }
+  controller = *controller_ptr;
+}
+
 /******************************************************************************************************/
 /******************************************************************************************************/
 /******************************************************************************************************/

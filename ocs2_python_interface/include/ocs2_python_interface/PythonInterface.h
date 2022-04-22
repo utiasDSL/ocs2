@@ -34,6 +34,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ocs2_mpc/MPC_MRT_Interface.h>
 #include <ocs2_oc/oc_problem/OptimalControlProblem.h>
 #include <ocs2_robotic_tools/common/RobotInterface.h>
+#include <ocs2_core/control/LinearController.h>
 
 namespace ocs2 {
 
@@ -114,6 +115,10 @@ class PythonInterface {
    * @return State-feedback matrix
    */
   matrix_t getLinearFeedbackGain(scalar_t t);
+
+  vector_t getBias(scalar_t t);
+
+  LinearController getLinearController();
 
   /** System dynamics */
   vector_t flowMap(scalar_t t, Eigen::Ref<const vector_t> x, Eigen::Ref<const vector_t> u);
