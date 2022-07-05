@@ -32,8 +32,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ctime>
 #include <iostream>
 
-#include <ocs2_core/initialization/DefaultInitializer.h>
 #include <ocs2_core/control/FeedforwardController.h>
+#include <ocs2_core/initialization/DefaultInitializer.h>
 #include <ocs2_oc/rollout/TimeTriggeredRollout.h>
 #include <ocs2_oc/test/EXP1.h>
 
@@ -44,9 +44,9 @@ class Exp1 : public testing::TestWithParam<std::tuple<ocs2::search_strategy::Typ
  protected:
   static constexpr size_t STATE_DIM = 2;
   static constexpr size_t INPUT_DIM = 1;
+  static constexpr ocs2::scalar_t timeStep = 1e-2;
   static constexpr ocs2::scalar_t expectedCost = 5.4399;
   static constexpr ocs2::scalar_t expectedStateInputEqConstraintISE = 0.0;
-  static constexpr ocs2::scalar_t expectedStateEqConstraintISE = 0.0;
 
   Exp1() {
     // event times
@@ -54,29 +54,7 @@ class Exp1 : public testing::TestWithParam<std::tuple<ocs2::search_strategy::Typ
     const std::vector<size_t> modeSequence{0, 1, 2};
     referenceManagerPtr = ocs2::getExp1ReferenceManager(eventTimes, modeSequence);
 
-    // partitioning times
-    partitioningTimes = ocs2::scalar_array_t{startTime, eventTimes[0], eventTimes[1], finalTime};
-
-    // rollout settings
-    const auto rolloutSettings = []() {
-      ocs2::rollout::Settings rolloutSettings;
-      rolloutSettings.absTolODE = 1e-10;
-      rolloutSettings.relTolODE = 1e-7;
-      rolloutSettings.maxNumStepsPerSecond = 10000;
-      return rolloutSettings;
-    }();
-
-    // dynamics and rollout
-    ocs2::EXP1_System system(referenceManagerPtr);
-    rolloutPtr.reset(new ocs2::TimeTriggeredRollout(system, rolloutSettings));
-
-    // optimal control problem
-    problemPtr.reset(new ocs2::OptimalControlProblem);
-    problemPtr->dynamicsPtr.reset(system.clone());
-
-    // cost function
-    problemPtr->costPtr->add("cost", std::unique_ptr<ocs2::StateInputCost>(new ocs2::EXP1_Cost()));
-    problemPtr->finalCostPtr->add("finalCost", std::unique_ptr<ocs2::StateCost>(new ocs2::EXP1_FinalCost()));
+    problem = ocs2::createExp1Problem(referenceManagerPtr);
 
     // operatingTrajectories
     initializerPtr.reset(new ocs2::DefaultInitializer(INPUT_DIM));
@@ -85,6 +63,17 @@ class Exp1 : public testing::TestWithParam<std::tuple<ocs2::search_strategy::Typ
   ocs2::search_strategy::Type getSearchStrategy() { return std::get<0>(GetParam()); }
 
   size_t getNumThreads() { return std::get<1>(GetParam()); }
+
+  // rollout settings
+  ocs2::rollout::Settings rolloutSettings() const {
+    ocs2::rollout::Settings rolloutSettings;
+    rolloutSettings.absTolODE = 1e-10;
+    rolloutSettings.relTolODE = 1e-7;
+    rolloutSettings.timeStep = timeStep;
+    rolloutSettings.integratorType = ocs2::IntegratorType::ODE45;
+    rolloutSettings.maxNumStepsPerSecond = 10000;
+    return rolloutSettings;
+  };
 
   ocs2::ddp::Settings getSettings(ocs2::ddp::Algorithm algorithmType, size_t numThreads, ocs2::search_strategy::Type strategy,
                                   bool display = false) const {
@@ -98,8 +87,9 @@ class Exp1 : public testing::TestWithParam<std::tuple<ocs2::search_strategy::Typ
     ddpSettings.checkNumericalStability_ = true;
     ddpSettings.absTolODE_ = 1e-10;
     ddpSettings.relTolODE_ = 1e-7;
+    ddpSettings.timeStep_ = timeStep;
+    ddpSettings.backwardPassIntegratorType_ = ocs2::IntegratorType::ODE45;
     ddpSettings.maxNumStepsPerSecond_ = 10000;
-    ddpSettings.useNominalTimeForBackwardPass_ = true;
     ddpSettings.useFeedbackPolicy_ = false;
     ddpSettings.debugPrintRollout_ = false;
     ddpSettings.strategy_ = strategy;
@@ -118,31 +108,100 @@ class Exp1 : public testing::TestWithParam<std::tuple<ocs2::search_strategy::Typ
 
   void performanceIndexTest(const ocs2::ddp::Settings& ddpSettings, const ocs2::PerformanceIndex& performanceIndex) const {
     const auto testName = getTestName(ddpSettings);
-    EXPECT_LT(fabs(performanceIndex.totalCost - expectedCost), 10 * ddpSettings.minRelCost_)
+    EXPECT_LT(fabs(performanceIndex.cost - expectedCost), 10 * ddpSettings.minRelCost_)
         << "MESSAGE: " << testName << ": failed in the total cost test!";
-    EXPECT_LT(fabs(performanceIndex.stateInputEqConstraintISE - expectedStateInputEqConstraintISE), 10 * ddpSettings.constraintTolerance_)
+    EXPECT_LT(fabs(performanceIndex.equalityConstraintsSSE - expectedStateInputEqConstraintISE), 10 * ddpSettings.constraintTolerance_)
         << "MESSAGE: " << testName << ": failed in state-input equality constraint ISE test!";
-    EXPECT_LT(fabs(performanceIndex.stateEqConstraintISE - expectedStateEqConstraintISE), 10 * ddpSettings.constraintTolerance_)
-        << "MESSAGE: " << testName << ": failed in state-only equality constraint ISE test!";
   }
 
   const ocs2::scalar_t startTime = 0.0;
   const ocs2::scalar_t finalTime = 3.0;
   const ocs2::vector_t initState = (ocs2::vector_t(STATE_DIM) << 2.0, 3.0).finished();
-  ocs2::scalar_array_t partitioningTimes;
   std::shared_ptr<ocs2::ReferenceManager> referenceManagerPtr;
 
-  std::unique_ptr<ocs2::SystemDynamicsBase> systemPtr;
-  std::unique_ptr<ocs2::TimeTriggeredRollout> rolloutPtr;
-  std::unique_ptr<ocs2::OptimalControlProblem> problemPtr;
+  ocs2::OptimalControlProblem problem;
   std::unique_ptr<ocs2::Initializer> initializerPtr;
 };
 
 constexpr size_t Exp1::STATE_DIM;
 constexpr size_t Exp1::INPUT_DIM;
+constexpr ocs2::scalar_t Exp1::timeStep;
 constexpr ocs2::scalar_t Exp1::expectedCost;
 constexpr ocs2::scalar_t Exp1::expectedStateInputEqConstraintISE;
-constexpr ocs2::scalar_t Exp1::expectedStateEqConstraintISE;
+
+/******************************************************************************************************/
+/******************************************************************************************************/
+/******************************************************************************************************/
+TEST_F(Exp1, ddp_hamiltonian) {
+  // ddp settings
+  auto ddpSettings = getSettings(ocs2::ddp::Algorithm::SLQ, 2, ocs2::search_strategy::Type::LINE_SEARCH);
+  ddpSettings.useFeedbackPolicy_ = true;
+  ddpSettings.minRelCost_ = 1e-9;  // to allow more iterations that the effect of final linesearch is negligible
+  ddpSettings.maxNumIterations_ = 50;
+
+  // dynamics and rollout
+  ocs2::EXP1_System systemDynamics(referenceManagerPtr);
+  ocs2::TimeTriggeredRollout rollout(systemDynamics, rolloutSettings());
+
+  // instantiate
+  ocs2::SLQ ddp(ddpSettings, rollout, problem, *initializerPtr);
+  ddp.setReferenceManager(referenceManagerPtr);
+
+  // run ddp
+  ddp.run(startTime, initState, finalTime);
+  // get solution
+  const auto solution = ddp.primalSolution(finalTime);
+
+  // define precision for tests
+  constexpr ocs2::scalar_t precision = 1e-3;
+  // note: in the following highly non-linear system means more than quadratic in the state
+
+  // get Hamiltonian at current solution
+  // expected outcome: true, because the current solution should be optimal
+  ocs2::scalar_t time = solution.timeTrajectory_.front();
+  ocs2::vector_t state = solution.stateTrajectory_.front();
+  ocs2::vector_t input = solution.controllerPtr_->computeInput(time, state);
+  auto hamiltonian = ddp.getHamiltonian(time, state, input);
+  const ocs2::vector_t dHdu1a = hamiltonian.dfdu;
+  EXPECT_TRUE(dHdu1a.isZero(precision)) << "MESSAGE for test 1a: Derivative of Hamiltonian w.r.t. to u is not zero: " << dHdu1a.transpose();
+
+  // evaluate Hamiltonian at different state (but using feedback policy)
+  // expected outcome: true, because for a highly non-linear system the LQ approximation of H is not exact,
+  //                         however since the subsystems' dynamics are control-affine and the cost is quadratic w.r.t. to input,
+  //                         this looks like a LQR problem and the linear feedback policy appears to be globally optimal
+  ocs2::scalar_t querryTime = solution.timeTrajectory_.front();
+  ocs2::vector_t querryState = ocs2::vector_t::Random(solution.stateTrajectory_.front().size());
+  ocs2::vector_t querryInput = solution.controllerPtr_->computeInput(querryTime, querryState);
+  const ocs2::vector_t dHdu1b = hamiltonian.dfdux * (querryState - state) + hamiltonian.dfduu * (querryInput - input) + hamiltonian.dfdu;
+  EXPECT_TRUE(dHdu1b.isZero(precision)) << "MESSAGE for test 1b: Derivative of Hamiltonian w.r.t. to u is not zero: " << dHdu1b.transpose();
+
+  // evaluate Hamiltonian at different input
+  // expected outcome: false, because for a highly non-linear system the LQ approximation of H is not exact
+  //                          but still a random input does not appear to be optimal
+  querryTime = solution.timeTrajectory_.front();
+  querryState = solution.stateTrajectory_.front();
+  querryInput = ocs2::vector_t::Random(solution.inputTrajectory_.front().size());
+  const ocs2::vector_t dHdu1c = hamiltonian.dfdux * (querryState - state) + hamiltonian.dfduu * (querryInput - input) + hamiltonian.dfdu;
+  EXPECT_FALSE(dHdu1c.isZero(precision)) << "MESSAGE for test 1c: Derivative of Hamiltonian w.r.t. to u is zero: " << dHdu1c.transpose();
+
+  // get Hamiltonian at different state (but using feedback policy)
+  // expected outcome: false, because for a highly non-linear system the linear feedback policy is not globally optimal
+  time = solution.timeTrajectory_.front();
+  state = ocs2::vector_t::Random(solution.stateTrajectory_.front().size());
+  input = solution.controllerPtr_->computeInput(time, state);
+  hamiltonian = ddp.getHamiltonian(time, state, input);
+  const ocs2::vector_t dHdu2 = hamiltonian.dfdu;
+  EXPECT_FALSE(dHdu2.isZero(precision)) << "MESSAGE for test 2: Derivative of Hamiltonian w.r.t. to u is zero: " << dHdu2.transpose();
+
+  // get Hamiltonian at different input
+  // expected outcome: false, because a random input is not optimal
+  time = solution.timeTrajectory_.front();
+  state = solution.stateTrajectory_.front();
+  input = ocs2::vector_t::Random(solution.inputTrajectory_.front().size());
+  hamiltonian = ddp.getHamiltonian(time, state, input);
+  const ocs2::vector_t dHdu3 = hamiltonian.dfdu;
+  EXPECT_FALSE(dHdu3.isZero(precision)) << "MESSAGE for test 3: Derivative of Hamiltonian w.r.t. to u is zero: " << dHdu3.transpose();
+}
 
 /******************************************************************************************************/
 /******************************************************************************************************/
@@ -151,16 +210,20 @@ TEST_P(Exp1, SLQ) {
   // ddp settings
   const auto ddpSettings = getSettings(ocs2::ddp::Algorithm::SLQ, getNumThreads(), getSearchStrategy());
 
+  // dynamics and rollout
+  ocs2::EXP1_System systemDynamics(referenceManagerPtr);
+  ocs2::TimeTriggeredRollout rollout(systemDynamics, rolloutSettings());
+
   // instantiate
-  ocs2::SLQ ddp(ddpSettings, *rolloutPtr, *problemPtr, *initializerPtr);
+  ocs2::SLQ ddp(ddpSettings, rollout, problem, *initializerPtr);
   ddp.setReferenceManager(referenceManagerPtr);
 
-  if(ddpSettings.displayInfo_ || ddpSettings.displayShortSummary_) {
+  if (ddpSettings.displayInfo_ || ddpSettings.displayShortSummary_) {
     std::cerr << "\n" << getTestName(ddpSettings) << "\n";
   }
 
   // run ddp
-  ddp.run(startTime, initState, finalTime, partitioningTimes);
+  ddp.run(startTime, initState, finalTime);
   // get performance index
   const auto performanceIndex = ddp.getPerformanceIndeces();
 
@@ -175,8 +238,12 @@ TEST_P(Exp1, ILQR) {
   // ddp settings
   const auto ddpSettings = getSettings(ocs2::ddp::Algorithm::ILQR, getNumThreads(), getSearchStrategy());
 
+  // dynamics and rollout
+  ocs2::EXP1_System systemDynamics(referenceManagerPtr);
+  ocs2::TimeTriggeredRollout rollout(systemDynamics, rolloutSettings());
+
   // instantiate
-  ocs2::ILQR ddp(ddpSettings, *rolloutPtr, *problemPtr, *initializerPtr);
+  ocs2::ILQR ddp(ddpSettings, rollout, problem, *initializerPtr);
   ddp.setReferenceManager(referenceManagerPtr);
 
   if (ddpSettings.displayInfo_ || ddpSettings.displayShortSummary_) {
@@ -184,7 +251,7 @@ TEST_P(Exp1, ILQR) {
   }
 
   // run ddp
-  ddp.run(startTime, initState, finalTime, partitioningTimes);
+  ddp.run(startTime, initState, finalTime);
   // get performance index
   const auto performanceIndex = ddp.getPerformanceIndeces();
 

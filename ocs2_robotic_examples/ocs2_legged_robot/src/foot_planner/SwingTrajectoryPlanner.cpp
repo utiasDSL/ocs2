@@ -27,6 +27,9 @@ OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************************************************************/
 
+#include <boost/property_tree/info_parser.hpp>
+#include <boost/property_tree/ptree.hpp>
+
 #include "ocs2_legged_robot/foot_planner/SwingTrajectoryPlanner.h"
 
 #include <ocs2_core/misc/Lookup.h>
@@ -104,6 +107,7 @@ void SwingTrajectoryPlanner::update(const ModeSchedule& modeSchedule, const feet
         const scalar_t midHeight = std::min(liftOffHeightSequence[j][p], touchDownHeightSequence[j][p]) + scaling * config_.swingHeight;
         feetHeightTrajectories_[j].emplace_back(liftOff, midHeight, touchDown);
       } else {  // for a stance leg
+        // Note: setting the time here arbitrarily to 0.0 -> 1.0 makes the assert in CubicSpline fail
         const CubicSpline::Node liftOff{0.0, liftOffHeightSequence[j][p], 0.0};
         const CubicSpline::Node touchDown{1.0, liftOffHeightSequence[j][p], 0.0};
         feetHeightTrajectories_[j].emplace_back(liftOff, liftOffHeightSequence[j][p], touchDown);

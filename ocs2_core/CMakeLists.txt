@@ -79,7 +79,6 @@ add_library(${PROJECT_NAME}
   src/control/FeedforwardController.cpp
   src/control/LinearController.cpp
   src/control/StateBasedLinearController.cpp
-  src/control/TrajectorySpreadingControllerAdjustment.cpp
   src/cost/QuadraticStateCost.cpp
   src/cost/QuadraticStateInputCost.cpp
   src/cost/StateCostCollection.cpp
@@ -104,6 +103,7 @@ add_library(${PROJECT_NAME}
   src/integration/SystemEventHandler.cpp
   src/reference/ModeSchedule.cpp
   src/reference/TargetTrajectories.cpp
+  src/loopshaping/LoopshapingDefinition.cpp
   src/loopshaping/LoopshapingPropertyTree.cpp
   src/loopshaping/LoopshapingFilter.cpp
   src/loopshaping/LoopshapingPreComputation.cpp
@@ -111,37 +111,30 @@ add_library(${PROJECT_NAME}
   src/loopshaping/cost/LoopshapingStateCost.cpp
   src/loopshaping/cost/LoopshapingStateInputCost.cpp
   src/loopshaping/cost/LoopshapingCostEliminatePattern.cpp
-  src/loopshaping/cost/LoopshapingCostInputPattern.cpp
   src/loopshaping/cost/LoopshapingCostOutputPattern.cpp
   src/loopshaping/soft_constraint/LoopshapingSoftConstraint.cpp
   src/loopshaping/soft_constraint/LoopshapingStateInputSoftConstraint.cpp
   src/loopshaping/soft_constraint/LoopshapingSoftConstraintEliminatePattern.cpp
-  src/loopshaping/soft_constraint/LoopshapingSoftConstraintInputPattern.cpp
   src/loopshaping/soft_constraint/LoopshapingSoftConstraintOutputPattern.cpp
   src/loopshaping/constraint/LoopshapingConstraint.cpp
-  src/loopshaping/constraint/LoopshapingFilterConstraint.cpp
   src/loopshaping/constraint/LoopshapingStateConstraint.cpp
   src/loopshaping/constraint/LoopshapingStateInputConstraint.cpp
   src/loopshaping/constraint/LoopshapingConstraintEliminatePattern.cpp
-  src/loopshaping/constraint/LoopshapingConstraintInputPattern.cpp
   src/loopshaping/constraint/LoopshapingConstraintOutputPattern.cpp
   src/loopshaping/dynamics/LoopshapingDynamics.cpp
   src/loopshaping/dynamics/LoopshapingDynamicsEliminatePattern.cpp
-  src/loopshaping/dynamics/LoopshapingDynamicsInputPattern.cpp
   src/loopshaping/dynamics/LoopshapingDynamicsOutputPattern.cpp
   src/loopshaping/dynamics/LoopshapingFilterDynamics.cpp
   src/loopshaping/initialization/LoopshapingInitializer.cpp
   src/model_data/ModelData.cpp
   src/misc/LinearAlgebra.cpp
   src/misc/Log.cpp
-  src/soft_constraint/SoftConstraintPenalty.cpp
+  src/misc/LoadStdVectorOfPair.cpp
   src/soft_constraint/StateSoftConstraint.cpp
   src/soft_constraint/StateInputSoftConstraint.cpp
-  src/soft_constraint/penalties/DoubleSidedPenalty.cpp
-  src/soft_constraint/penalties/QuadraticPenalty.cpp
-  src/soft_constraint/penalties/SmoothAbsolutePenalty.cpp
-  src/soft_constraint/penalties/RelaxedBarrierPenalty.cpp
-  src/soft_constraint/penalties/SquaredHingePenalty.cpp
+  src/penalties/MultidimensionalPenalty.cpp
+  src/penalties/penalties/RelaxedBarrierPenalty.cpp
+  src/penalties/penalties/SquaredHingePenalty.cpp
   src/thread_support/ThreadPool.cpp
 )
 target_link_libraries(${PROJECT_NAME}
@@ -336,6 +329,15 @@ catkin_add_gtest(test_ModelData
   test/model_data/testModelData.cpp
 )
 target_link_libraries(test_ModelData
+  ${PROJECT_NAME}
+  ${catkin_LIBRARIES}
+  gtest_main
+)
+
+catkin_add_gtest(test_ModeSchedule
+  test/reference/testModeSchedule.cpp
+)
+target_link_libraries(test_ModeSchedule
   ${PROJECT_NAME}
   ${catkin_LIBRARIES}
   gtest_main

@@ -54,7 +54,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "ocs2_legged_robot/cost/LeggedRobotStateInputQuadraticCost.h"
 #include "ocs2_legged_robot/dynamics/LeggedRobotDynamicsAD.h"
 
-#include <ros/package.h>
+// Boost
+#include <boost/filesystem/operations.hpp>
+#include <boost/filesystem/path.hpp>
 
 namespace ocs2 {
 namespace legged_robot {
@@ -62,25 +64,41 @@ namespace legged_robot {
 /******************************************************************************************************/
 /******************************************************************************************************/
 /******************************************************************************************************/
-LeggedRobotInterface::LeggedRobotInterface(const std::string& taskFileFolderName, const std::string& targetCommandFile,
-                                           const ::urdf::ModelInterfaceSharedPtr& urdfTree) {
-  // Load the task file
-  const std::string taskFolder = ros::package::getPath("ocs2_legged_robot") + "/config/" + taskFileFolderName;
-  const std::string taskFile = taskFolder + "/task.info";
-  std::cerr << "Loading task file: " << taskFile << std::endl;
+LeggedRobotInterface::LeggedRobotInterface(const std::string& taskFile, const std::string& urdfFile, const std::string& referenceFile) {
+  // check that task file exists
+  boost::filesystem::path taskFilePath(taskFile);
+  if (boost::filesystem::exists(taskFilePath)) {
+    std::cerr << "[LeggedRobotInterface] Loading task file: " << taskFilePath << std::endl;
+  } else {
+    throw std::invalid_argument("[LeggedRobotInterface] Task file not found: " + taskFilePath.string());
+  }
+  // check that urdf file exists
+  boost::filesystem::path urdfFilePath(urdfFile);
+  if (boost::filesystem::exists(urdfFilePath)) {
+    std::cerr << "[LeggedRobotInterface] Loading Pinocchio model from: " << urdfFilePath << std::endl;
+  } else {
+    throw std::invalid_argument("[LeggedRobotInterface] URDF file not found: " + urdfFilePath.string());
+  }
+  // check that targetCommand file exists
+  boost::filesystem::path referenceFilePath(referenceFile);
+  if (boost::filesystem::exists(referenceFilePath)) {
+    std::cerr << "[LeggedRobotInterface] Loading target command settings from: " << referenceFilePath << std::endl;
+  } else {
+    throw std::invalid_argument("[LeggedRobotInterface] targetCommand file not found: " + referenceFilePath.string());
+  }
 
-  boost::property_tree::ptree pt;
-  boost::property_tree::read_info(taskFile, pt);
-  loadData::loadPtreeValue(pt, display_, "legged_robot_interface.display", true);
+  bool verbose;
+  loadData::loadCppDataType(taskFile, "legged_robot_interface.verbose", verbose);
 
   // load setting from loading file
-  modelSettings_ = loadModelSettings(taskFile);
-  ddpSettings_ = ddp::loadSettings(taskFile);
-  mpcSettings_ = mpc::loadSettings(taskFile);
-  rolloutSettings_ = rollout::loadSettings(taskFile, "rollout");
+  modelSettings_ = loadModelSettings(taskFile, "model_settings", verbose);
+  ddpSettings_ = ddp::loadSettings(taskFile, "ddp", verbose);
+  mpcSettings_ = mpc::loadSettings(taskFile, "mpc", verbose);
+  rolloutSettings_ = rollout::loadSettings(taskFile, "rollout", verbose);
+  sqpSettings_ = multiple_shooting::loadSettings(taskFile, "multiple_shooting", verbose);
 
   // OptimalConrolProblem
-  setupOptimalConrolProblem(taskFile, targetCommandFile, urdfTree);
+  setupOptimalConrolProblem(taskFile, urdfFile, referenceFile, verbose);
 
   // initial state
   initialState_.setZero(centroidalModelInfo_.stateDim);
@@ -90,47 +108,24 @@ LeggedRobotInterface::LeggedRobotInterface(const std::string& taskFileFolderName
 /******************************************************************************************************/
 /******************************************************************************************************/
 /******************************************************************************************************/
-std::shared_ptr<GaitSchedule> LeggedRobotInterface::loadGaitSchedule(const std::string& taskFile) {
-  const auto initModeSchedule = loadModeSchedule(taskFile, "initialModeSchedule", false);
-  const auto defaultModeSequenceTemplate = loadModeSequenceTemplate(taskFile, "defaultModeSequenceTemplate", false);
-
-  const auto defaultGait = [&] {
-    Gait gait{};
-    gait.duration = defaultModeSequenceTemplate.switchingTimes.back();
-    // Events: from time -> phase
-    std::for_each(defaultModeSequenceTemplate.switchingTimes.begin() + 1, defaultModeSequenceTemplate.switchingTimes.end() - 1,
-                  [&](double eventTime) { gait.eventPhases.push_back(eventTime / gait.duration); });
-    // Modes:
-    gait.modeSequence = defaultModeSequenceTemplate.modeSequence;
-    return gait;
-  }();
-
-  // display
-  std::cerr << "\nInitial Modes Schedule: \n" << initModeSchedule << std::endl;
-  std::cerr << "\nDefault Modes Sequence Template: \n" << defaultModeSequenceTemplate << std::endl;
-
-  return std::make_shared<GaitSchedule>(initModeSchedule, defaultModeSequenceTemplate, modelSettings_.phaseTransitionStanceTime);
-}
-
-/******************************************************************************************************/
-/******************************************************************************************************/
-/******************************************************************************************************/
-void LeggedRobotInterface::setupOptimalConrolProblem(const std::string& taskFile, const std::string& targetCommandFile,
-                                                     const ::urdf::ModelInterfaceSharedPtr& urdfTree) {
+void LeggedRobotInterface::setupOptimalConrolProblem(const std::string& taskFile, const std::string& urdfFile,
+                                                     const std::string& referenceFile, bool verbose) {
   // PinocchioInterface
-  pinocchioInterfacePtr_.reset(new PinocchioInterface(centroidal_model::createPinocchioInterface(urdfTree, modelSettings_.jointNames)));
+  pinocchioInterfacePtr_.reset(new PinocchioInterface(centroidal_model::createPinocchioInterface(urdfFile, modelSettings_.jointNames)));
 
   // CentroidalModelInfo
   centroidalModelInfo_ = centroidal_model::createCentroidalModelInfo(
       *pinocchioInterfacePtr_, centroidal_model::loadCentroidalType(taskFile),
-      centroidal_model::loadDefaultJointState(12, targetCommandFile), modelSettings_.contactNames3DoF, modelSettings_.contactNames6DoF);
+      centroidal_model::loadDefaultJointState(pinocchioInterfacePtr_->getModel().nq - 6, referenceFile), modelSettings_.contactNames3DoF,
+      modelSettings_.contactNames6DoF);
 
   // Swing trajectory planner
   std::unique_ptr<SwingTrajectoryPlanner> swingTrajectoryPlanner(
-      new SwingTrajectoryPlanner(loadSwingTrajectorySettings(taskFile, "swing_trajectory_config"), 4));
+      new SwingTrajectoryPlanner(loadSwingTrajectorySettings(taskFile, "swing_trajectory_config", verbose), 4));
 
   // Mode schedule manager
-  referenceManagerPtr_ = std::make_shared<SwitchedModelReferenceManager>(loadGaitSchedule(taskFile), std::move(swingTrajectoryPlanner));
+  referenceManagerPtr_ =
+      std::make_shared<SwitchedModelReferenceManager>(loadGaitSchedule(referenceFile, verbose), std::move(swingTrajectoryPlanner));
 
   // Optimal control problem
   problemPtr_.reset(new OptimalControlProblem);
@@ -140,7 +135,7 @@ void LeggedRobotInterface::setupOptimalConrolProblem(const std::string& taskFile
   loadData::loadCppDataType(taskFile, "legged_robot_interface.useAnalyticalGradientsDynamics", useAnalyticalGradientsDynamics);
   std::unique_ptr<SystemDynamicsBase> dynamicsPtr;
   if (useAnalyticalGradientsDynamics) {
-    throw std::runtime_error("[LeggedRobotInterface::setupOptimalConrolProblem] The analytical dynamics class is not yet implemented.");
+    throw std::runtime_error("[LeggedRobotInterface::setupOptimalConrolProblem] The analytical dynamics class is not yet implemented!");
   } else {
     const std::string modelName = "dynamics";
     dynamicsPtr.reset(new LeggedRobotDynamicsAD(*pinocchioInterfacePtr_, centroidalModelInfo_, modelName, modelSettings_));
@@ -149,13 +144,13 @@ void LeggedRobotInterface::setupOptimalConrolProblem(const std::string& taskFile
   problemPtr_->dynamicsPtr = std::move(dynamicsPtr);
 
   // Cost terms
-  problemPtr_->costPtr->add("baseTrackingCost", getBaseTrackingCost(taskFile, centroidalModelInfo_));
+  problemPtr_->costPtr->add("baseTrackingCost", getBaseTrackingCost(taskFile, centroidalModelInfo_, false));
 
   // Constraint terms
   // friction cone settings
   scalar_t frictionCoefficient = 0.7;
   RelaxedBarrierPenalty::Config barrierPenaltyConfig;
-  std::tie(frictionCoefficient, barrierPenaltyConfig) = loadFrictionConeSettings(taskFile);
+  std::tie(frictionCoefficient, barrierPenaltyConfig) = loadFrictionConeSettings(taskFile, verbose);
 
   bool useAnalyticalGradientsConstraints = false;
   loadData::loadCppDataType(taskFile, "legged_robot_interface.useAnalyticalGradientsConstraints", useAnalyticalGradientsConstraints);
@@ -179,8 +174,9 @@ void LeggedRobotInterface::setupOptimalConrolProblem(const std::string& taskFile
                                                                     modelSettings_.recompileLibrariesCppAd, modelSettings_.verboseCppAd));
     }
 
-    problemPtr_->softConstraintPtr->add(footName + "_frictionCone",
-                                        getFrictionConeConstraint(i, frictionCoefficient, barrierPenaltyConfig));
+    // problemPtr_->softConstraintPtr->add(footName + "_frictionCone",
+    //                                     getFrictionConeConstraint(i, frictionCoefficient, barrierPenaltyConfig));
+    problemPtr_->inequalityConstraintPtr->add(footName + "_frictionCone", getHardFrictionConeConstraint(i, frictionCoefficient));
     problemPtr_->equalityConstraintPtr->add(footName + "_zeroForce", getZeroForceConstraint(i));
     problemPtr_->equalityConstraintPtr->add(footName + "_zeroVelocity",
                                             getZeroVelocityConstraint(*eeKinematicsPtr, i, useAnalyticalGradientsConstraints));
@@ -203,7 +199,39 @@ void LeggedRobotInterface::setupOptimalConrolProblem(const std::string& taskFile
 /******************************************************************************************************/
 /******************************************************************************************************/
 /******************************************************************************************************/
-void LeggedRobotInterface::initializeInputCostWeight(const std::string& taskFile, const CentroidalModelInfo& info, matrix_t& R) {
+std::shared_ptr<GaitSchedule> LeggedRobotInterface::loadGaitSchedule(const std::string& file, bool verbose) const {
+  const auto initModeSchedule = loadModeSchedule(file, "initialModeSchedule", false);
+  const auto defaultModeSequenceTemplate = loadModeSequenceTemplate(file, "defaultModeSequenceTemplate", false);
+
+  const auto defaultGait = [&] {
+    Gait gait{};
+    gait.duration = defaultModeSequenceTemplate.switchingTimes.back();
+    // Events: from time -> phase
+    std::for_each(defaultModeSequenceTemplate.switchingTimes.begin() + 1, defaultModeSequenceTemplate.switchingTimes.end() - 1,
+                  [&](double eventTime) { gait.eventPhases.push_back(eventTime / gait.duration); });
+    // Modes:
+    gait.modeSequence = defaultModeSequenceTemplate.modeSequence;
+    return gait;
+  }();
+
+  // display
+  if (verbose) {
+    std::cerr << "\n#### Modes Schedule: ";
+    std::cerr << "\n#### =============================================================================\n";
+    std::cerr << "Initial Modes Schedule: \n" << initModeSchedule;
+    std::cerr << "Default Modes Sequence Template: \n" << defaultModeSequenceTemplate;
+    std::cerr << "#### =============================================================================\n";
+  }
+
+  return std::make_shared<GaitSchedule>(initModeSchedule, defaultModeSequenceTemplate, modelSettings_.phaseTransitionStanceTime);
+}
+
+/******************************************************************************************************/
+/******************************************************************************************************/
+/******************************************************************************************************/
+matrix_t LeggedRobotInterface::initializeInputCostWeight(const std::string& taskFile, const CentroidalModelInfo& info) {
+  const size_t totalContactDim = 3 * info.numThreeDofContacts;
+
   vector_t initialState(centroidalModelInfo_.stateDim);
   loadData::loadEigenMatrix(taskFile, "initialState", initialState);
 
@@ -213,32 +241,38 @@ void LeggedRobotInterface::initializeInputCostWeight(const std::string& taskFile
   pinocchio::computeJointJacobians(model, data, q);
   pinocchio::updateFramePlacements(model, data);
 
-  matrix_t baseToFeetJacobians(3 * info.numThreeDofContacts, 12);
+  matrix_t baseToFeetJacobians(totalContactDim, info.actuatedDofNum);
   for (size_t i = 0; i < info.numThreeDofContacts; i++) {
     matrix_t jacobianWorldToContactPointInWorldFrame = matrix_t::Zero(6, info.generalizedCoordinatesNum);
     pinocchio::getFrameJacobian(model, data, model.getBodyId(modelSettings_.contactNames3DoF[i]), pinocchio::LOCAL_WORLD_ALIGNED,
                                 jacobianWorldToContactPointInWorldFrame);
 
-    baseToFeetJacobians.block(3 * i, 0, 3, 12) = (jacobianWorldToContactPointInWorldFrame.topRows<3>()).block(0, 6, 3, 12);
+    baseToFeetJacobians.block(3 * i, 0, 3, info.actuatedDofNum) =
+        jacobianWorldToContactPointInWorldFrame.block(0, 6, 3, info.actuatedDofNum);
   }
 
-  const size_t totalContactDim = 3 * info.numThreeDofContacts;
-  R.block(totalContactDim, totalContactDim, 12, 12) =
-      (baseToFeetJacobians.transpose() * R.block(totalContactDim, totalContactDim, 12, 12) * baseToFeetJacobians).eval();
+  matrix_t R_taskspace(totalContactDim + totalContactDim, totalContactDim + totalContactDim);
+  loadData::loadEigenMatrix(taskFile, "R", R_taskspace);
+
+  matrix_t R = matrix_t::Zero(info.inputDim, info.inputDim);
+  // Contact Forces
+  R.topLeftCorner(totalContactDim, totalContactDim) = R_taskspace.topLeftCorner(totalContactDim, totalContactDim);
+  // Joint velocities
+  R.bottomRightCorner(info.actuatedDofNum, info.actuatedDofNum) =
+      baseToFeetJacobians.transpose() * R_taskspace.bottomRightCorner(totalContactDim, totalContactDim) * baseToFeetJacobians;
+  return R;
 }
 
 /******************************************************************************************************/
 /******************************************************************************************************/
 /******************************************************************************************************/
-std::unique_ptr<StateInputCost> LeggedRobotInterface::getBaseTrackingCost(const std::string& taskFile, const CentroidalModelInfo& info) {
+std::unique_ptr<StateInputCost> LeggedRobotInterface::getBaseTrackingCost(const std::string& taskFile, const CentroidalModelInfo& info,
+                                                                          bool verbose) {
   matrix_t Q(info.stateDim, info.stateDim);
   loadData::loadEigenMatrix(taskFile, "Q", Q);
-  matrix_t R(info.inputDim, info.inputDim);
-  loadData::loadEigenMatrix(taskFile, "R", R);
+  matrix_t R = initializeInputCostWeight(taskFile, info);
 
-  initializeInputCostWeight(taskFile, info, R);
-
-  if (display_) {
+  if (verbose) {
     std::cerr << "\n #### Base Tracking Cost Coefficients: ";
     std::cerr << "\n #### =============================================================================\n";
     std::cerr << "Q:\n" << Q << "\n";
@@ -252,21 +286,22 @@ std::unique_ptr<StateInputCost> LeggedRobotInterface::getBaseTrackingCost(const 
 /******************************************************************************************************/
 /******************************************************************************************************/
 /******************************************************************************************************/
-std::pair<scalar_t, RelaxedBarrierPenalty::Config> LeggedRobotInterface::loadFrictionConeSettings(const std::string& taskFile) const {
+std::pair<scalar_t, RelaxedBarrierPenalty::Config> LeggedRobotInterface::loadFrictionConeSettings(const std::string& taskFile,
+                                                                                                  bool verbose) const {
   boost::property_tree::ptree pt;
   boost::property_tree::read_info(taskFile, pt);
   const std::string prefix = "frictionConeSoftConstraint.";
 
   scalar_t frictionCoefficient = 1.0;
   RelaxedBarrierPenalty::Config barrierPenaltyConfig;
-  if (display_) {
+  if (verbose) {
     std::cerr << "\n #### Friction Cone Settings: ";
     std::cerr << "\n #### =============================================================================\n";
   }
-  loadData::loadPtreeValue(pt, frictionCoefficient, prefix + "frictionCoefficient", display_);
-  loadData::loadPtreeValue(pt, barrierPenaltyConfig.mu, prefix + "mu", display_);
-  loadData::loadPtreeValue(pt, barrierPenaltyConfig.delta, prefix + "delta", display_);
-  if (display_) {
+  loadData::loadPtreeValue(pt, frictionCoefficient, prefix + "frictionCoefficient", verbose);
+  loadData::loadPtreeValue(pt, barrierPenaltyConfig.mu, prefix + "mu", verbose);
+  loadData::loadPtreeValue(pt, barrierPenaltyConfig.delta, prefix + "delta", verbose);
+  if (verbose) {
     std::cerr << " #### =============================================================================\n";
   }
 
@@ -285,6 +320,13 @@ std::unique_ptr<StateInputCost> LeggedRobotInterface::getFrictionConeConstraint(
   std::unique_ptr<PenaltyBase> penalty(new RelaxedBarrierPenalty(barrierPenaltyConfig));
 
   return std::unique_ptr<StateInputCost>(new StateInputSoftConstraint(std::move(frictionConeConstraintPtr), std::move(penalty)));
+}
+
+std::unique_ptr<StateInputConstraint> LeggedRobotInterface::getHardFrictionConeConstraint(size_t contactPointIndex, scalar_t frictionCoefficient) {
+  FrictionConeConstraint::Config frictionConeConConfig(frictionCoefficient);
+  std::unique_ptr<FrictionConeConstraint> frictionConeConstraintPtr(
+      new FrictionConeConstraint(*referenceManagerPtr_, std::move(frictionConeConConfig), contactPointIndex, centroidalModelInfo_));
+  return frictionConeConstraintPtr;
 }
 
 /******************************************************************************************************/

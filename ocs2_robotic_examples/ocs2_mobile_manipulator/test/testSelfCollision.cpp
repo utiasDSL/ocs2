@@ -36,9 +36,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <gtest/gtest.h>
 
 #include <ocs2_core/misc/LoadData.h>
+#include <ocs2_robotic_assets/package_path.h>
 #include <ocs2_self_collision/SelfCollision.h>
 #include <ocs2_self_collision/SelfCollisionCppAd.h>
-#include <ocs2_robotic_assets/package_path.h>
 
 #include "ocs2_mobile_manipulator/FactoryFunctions.h"
 #include "ocs2_mobile_manipulator/MobileManipulatorInterface.h"
@@ -77,8 +77,8 @@ class TestSelfCollision : public ::testing::Test {
 
  protected:
   PinocchioInterface createMobileManipulatorPinocchioInterface() {
-    const std::string urdfPath = ocs2::robotic_assets::getPath() + "/resources/mobile_manipulator/urdf/mobile_manipulator.urdf";
-    const std::string taskFile = ocs2::mobile_manipulator::getPath() + "/config/mpc/task.info";
+    const std::string urdfPath = ocs2::robotic_assets::getPath() + "/resources/mobile_manipulator/mabi_mobile/urdf/mabi_mobile.urdf";
+    const std::string taskFile = ocs2::mobile_manipulator::getPath() + "/config/mabi_mobile/task.info";
 
     // read manipulator type
     ManipulatorModelType modelType = mobile_manipulator::loadManipulatorType(taskFile, "model_information.manipulatorModelType");
@@ -86,7 +86,7 @@ class TestSelfCollision : public ::testing::Test {
     std::vector<std::string> removeJointNames;
     loadData::loadStdVector<std::string>(taskFile, "model_information.removeJoints", removeJointNames, false);
     // initialize pinocchio interface
-    return createPinocchioInterface(urdfPath, modelType, removeJointNames) ;
+    return createPinocchioInterface(urdfPath, modelType, removeJointNames);
   }
 };
 

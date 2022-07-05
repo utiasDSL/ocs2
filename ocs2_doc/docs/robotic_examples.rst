@@ -15,7 +15,7 @@ Double Integrator  2          1          No          No
 Cartpole           4          1          Yes         No
 Ballbot            10         3          No          No
 Quadrotor          12         4          No          No
-Mobile Manipulator 9          8          Yes         Yes / No
+Mobile Manipulator 6-13       6-13       Yes         Yes / No
 Legged Robot       24         24         Yes         No
 ================== ========== ========== =========== ========
 
@@ -38,7 +38,7 @@ cost through a reference manager module.
 .. code-block:: bash
 
     # Build the example
-    catkin build ocs2_double_integrator ocs2_double_integrator_ros
+    catkin build ocs2_double_integrator_ros
     # Source workspace
     # Do not forget to change <...> parts
     source <directory_to_ws>/<catkin_ws_name>/devel/setup.bash
@@ -64,7 +64,7 @@ cart along the track.
 .. code-block:: bash
 
     # Build the example
-    catkin build ocs2_cartpole ocs2_cartpole_ros
+    catkin build ocs2_cartpole_ros
     # Source workspace
     # Do not forget to change <...> parts
     source <directory_to_ws>/<catkin_ws_name>/devel/setup.bash
@@ -92,7 +92,7 @@ control the robot’s XY position and yaw based on user command.
 .. code-block:: bash
 
     # Build the example
-    catkin build ocs2_ballbot ocs2_ballbot_ros
+    catkin build ocs2_ballbot_ros
     # Source workspace
     # Do not forget to change <...> parts
     source <directory_to_ws>/<catkin_ws_name>/devel/setup.bash
@@ -118,7 +118,7 @@ command defined as the quadrotor’s 3D position and yaw.
 .. code-block:: bash
 
     # Build the example
-    catkin build ocs2_quadrotor ocs2_quadrotor_ros
+    catkin build ocs2_quadrotor_ros
     # Source workspace
     # Do not forget to change <...> parts
     source <directory_to_ws>/<catkin_ws_name>/devel/setup.bash
@@ -149,20 +149,107 @@ Note: This example implements both the cache and the
 non-cache variants of the MPC, which can be chosen through the
 usePreComputation flag in the config file. 
 
+The system model is determined by parsing the URDF and the task file. 
+Currently, the following system models are supported:
+
+* **Default** (*value:* 0): The default system model obtained by parsing the URDF.
+* **Actuated Dummy wheel-base** (*value:* 1): Adds a dummy XY-Yaw joints to the 
+  model parsed from the URDF which are actuated under holonomic constraint 
+  (velocity-control). This is a model of a mobile-manipulator with a base controlled
+  in SE(2).
+* **Unactuated Dummy floating-base** (*value:* 2): Adds a dummy XYZ-RPY joints to the 
+  model parsed from the URDF which are unactuated.
+* **Actuated Dummy floating-base** (*value:* 3): Adds a dummy XYZ-RPY joints to the 
+  model parsed from the URDF which are fully-actuated (velocity-control). This is a 
+  model of a mobile-manipulator with a base controlled in SE(3).
+
+To play-around different model types, you can change the model-information in the 
+`task.info` files.
+
 .. code-block:: bash
 
     # Build the example
-    catkin build ocs2_mobile_manipulator ocs2_mobile_manipulator_ros
+    catkin build ocs2_mobile_manipulator_ros
     # Source workspace
     # Do not forget to change <...> parts
     source <directory_to_ws>/<catkin_ws_name>/devel/setup.bash
 
-    # Launch the example
-    roslaunch ocs2_mobile_manipulator_ros mobile_manipulator.launch
 
-.. image:: ../tools/sphinx/_static/gif/mobile_manipulator.gif
-   :alt: mobile_manipulator.gif cannot be displayed!
-   :target: _static/gif/mobile_manipulator.gif
+For several common robot manipulators, we provide examples on running them
+with OCS2. The steps taken to generate the robot model files (URDF) are 
+available `here <https://github.com/leggedrobotics/ocs2_robotic_assets/blob/main/docs/MobileManipulatorUrdfAssets.md>`_.
+
+For some of these examples, we fix certain joints present in the URDF (such as the gripper 
+finger joints or wheel joints) through the `model_information.removeJoints` attribute in 
+the `task.info` file. This allows simplifying the constructed Pinocchio model. Only for
+visualization purposes on rviz, the joints under `removeJoints` in the `task.info` are published
+at zero joint positions by the dummy simulation node . 
+
+.. warning::
+    For these examples, additional tuning of the MPC might be required to work on hardware.
+    Additionally, for some of the examples, the collision meshes need to be simplified into
+    primitive shapes (such as cylinders and boxes) to allow collision avoidance.
+
+    We welcome contributions from the community for these use-cases.
+
+
+Mabi-Mobile
+~~~~~~~~~~~
+
+.. code-block:: bash
+
+    roslaunch ocs2_mobile_manipulator_ros manipulator_mabi_mobile.launch
+
+.. image:: ../tools/sphinx/_static/gif/mobile_manipulator/mabi_mobile.gif
+   :alt: mabi_mobile.gif cannot be displayed!
+   :target: _static/gif/mobile_manipulator/mabi_mobile.gif
+
+Kinova Jaco2
+~~~~~~~~~~~~~~~~~
+
+.. code-block:: bash
+
+    # For 6-Dof
+    roslaunch ocs2_mobile_manipulator_ros manipulator_kinova_j2n6.launch
+    # For 7-Dof
+    roslaunch ocs2_mobile_manipulator_ros manipulator_kinova_j2n7.launch
+
+.. image:: ../tools/sphinx/_static/gif/mobile_manipulator/kinova_j2n7.gif
+   :alt: kinova_j2n7.gif cannot be displayed!
+   :target: _static/gif/mobile_manipulator/kinova_j2n7.gif
+
+Franka Panda
+~~~~~~~~~~~~
+
+.. code-block:: bash
+
+    roslaunch ocs2_mobile_manipulator_ros manipulator_franka.launch
+
+.. image:: ../tools/sphinx/_static/gif/mobile_manipulator/franka.gif
+   :alt: franka.gif cannot be displayed!
+   :target: _static/gif/mobile_manipulator/franka.gif
+
+Willow Garage PR2
+~~~~~~~~~~~~~~~~~
+
+.. code-block:: bash
+
+    roslaunch ocs2_mobile_manipulator_ros manipulator_pr2.launch
+
+.. image:: ../tools/sphinx/_static/gif/mobile_manipulator/pr2.gif
+   :alt: pr2.gif cannot be displayed!
+   :target: _static/gif/mobile_manipulator/pr2.gif
+
+Clearpath Ridgeback with UR-5
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. code-block:: bash
+
+    roslaunch ocs2_mobile_manipulator_ros manipulator_ridgeback_ur5.launch
+
+.. image:: ../tools/sphinx/_static/gif/mobile_manipulator/ridgeback_ur5.gif
+   :alt: ridgeback_ur5.gif cannot be displayed!
+   :target: _static/gif/mobile_manipulator/ridgeback_ur5.gif
 
 .. _doxid-ocs2_doc_robotic_examples_legged_robot:
 
@@ -193,13 +280,15 @@ considers the full kinematics of the robot.
 .. code-block:: bash
 
     # Build the example
-    catkin build ocs2_legged_robot
+    catkin build ocs2_legged_robot_ros
     # Source workspace
     # Do not forget to change <...> parts
     source <directory_to_ws>/<catkin_ws_name>/devel/setup.bash
 
-    # Launch the example
-    roslaunch ocs2_legged_robot legged_robot.launch
+    # Launch the example for DDP
+    roslaunch ocs2_legged_robot_ros legged_robot_ddp.launch
+    # OR launch the example for SQP
+    roslaunch ocs2_legged_robot_ros legged_robot_sqp.launch
 
 .. image:: ../tools/sphinx/_static/gif/legged_robot.gif
    :alt: legged_robot.gif cannot be displayed!

@@ -40,6 +40,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <hpipm_catkin/HpipmInterface.h>
 
 #include "ocs2_sqp/MultipleShootingSettings.h"
+#include "ocs2_sqp/MultipleShootingSolverStatus.h"
 #include "ocs2_sqp/TimeDiscretization.h"
 
 namespace ocs2 {
@@ -75,23 +76,23 @@ class MultipleShootingSolver : public SolverBase {
     throw std::runtime_error("[MultipleShootingSolver] getValueFunction() not available yet.");
   };
 
+  ScalarFunctionQuadraticApproximation getHamiltonian(scalar_t time, const vector_t& state, const vector_t& input) override {
+    throw std::runtime_error("[MultipleShootingSolver] getHamiltonian() not available yet.");
+  }
+
   vector_t getStateInputEqualityConstraintLagrangian(scalar_t time, const vector_t& state) const override {
     throw std::runtime_error("[MultipleShootingSolver] getStateInputEqualityConstraintLagrangian() not available yet.");
   }
 
-  // Irrelevant baseclass stuff
-  void rewindOptimizer(size_t firstIndex) override{};
-  const unsigned long long int& getRewindCounter() const override {
-    throw std::runtime_error("[MultipleShootingSolver] no rewind counter");
-  };
-  const scalar_array_t& getPartitioningTimes() const override { return partitionTime_; };
-
  private:
-  void runImpl(scalar_t initTime, const vector_t& initState, scalar_t finalTime, const scalar_array_t& partitioningTimes) override;
+  void runImpl(scalar_t initTime, const vector_t& initState, scalar_t finalTime) override;
 
-  void runImpl(scalar_t initTime, const vector_t& initState, scalar_t finalTime, const scalar_array_t& partitioningTimes,
-               const std::vector<ControllerBase*>& controllersPtrStock) override {
-    runImpl(initTime, initState, finalTime, partitioningTimes);
+  void runImpl(scalar_t initTime, const vector_t& initState, scalar_t finalTime, const ControllerBase* externalControllerPtr) override {
+    if (externalControllerPtr == nullptr) {
+      runImpl(initTime, initState, finalTime);
+    } else {
+      throw std::runtime_error("[MultipleShootingSolver::run] This solver does not support external controller!");
+    }
   }
 
   /** Run a task in parallel with settings.nThreads */
@@ -126,10 +127,17 @@ class MultipleShootingSolver : public SolverBase {
   /** Compute 2-norm of the trajectory: sqrt(sum_i v[i]^2)  */
   static scalar_t trajectoryNorm(const vector_array_t& v);
 
+  /** Compute total constraint violation */
+  scalar_t totalConstraintViolation(const PerformanceIndex& performance) const;
+
   /** Decides on the step to take and overrides given trajectories {x(t), u(t)} <- {x(t) + a*dx(t), u(t) + a*du(t)} */
-  std::pair<bool, PerformanceIndex> takeStep(const PerformanceIndex& baseline, const std::vector<AnnotatedTime>& timeDiscretization,
-                                             const vector_t& initState, const OcpSubproblemSolution& subproblemSolution, vector_array_t& x,
-                                             vector_array_t& u);
+  multiple_shooting::StepInfo takeStep(const PerformanceIndex& baseline, const std::vector<AnnotatedTime>& timeDiscretization,
+                                       const vector_t& initState, const OcpSubproblemSolution& subproblemSolution, vector_array_t& x,
+                                       vector_array_t& u);
+
+  /** Determine convergence after a step */
+  multiple_shooting::Convergence checkConvergence(int iteration, const PerformanceIndex& baseline,
+                                                  const multiple_shooting::StepInfo& stepInfo) const;
 
   // Problem definition
   Settings settings_;
@@ -151,22 +159,21 @@ class MultipleShootingSolver : public SolverBase {
   std::vector<VectorFunctionLinearApproximation> dynamics_;
   std::vector<ScalarFunctionQuadraticApproximation> cost_;
   std::vector<VectorFunctionLinearApproximation> constraints_;  // equality constraints
-  std::vector<VectorFunctionLinearApproximation> ineqConstraints_;
   std::vector<VectorFunctionLinearApproximation> boxConstraints_;
   std::vector<VectorFunctionLinearApproximation> constraintsProjection_;
+  std::vector<VectorFunctionLinearApproximation> ineqConstraints_;
 
   // Iteration performance log
   std::vector<PerformanceIndex> performanceIndeces_;
 
   // Benchmarking
+  size_t numProblems_{0};
   size_t totalNumIterations_{0};
   benchmark::RepeatedTimer initializationTimer_;
   benchmark::RepeatedTimer linearQuadraticApproximationTimer_;
   benchmark::RepeatedTimer solveQpTimer_;
   benchmark::RepeatedTimer linesearchTimer_;
   benchmark::RepeatedTimer computeControllerTimer_;
-
-  scalar_array_t partitionTime_ = {};
 };
 
 }  // namespace ocs2

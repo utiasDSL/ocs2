@@ -48,7 +48,8 @@ bool operator==(const OcpSize& lhs, const OcpSize& rhs) noexcept {
 
 OcpSize extractSizesFromProblem(const std::vector<VectorFunctionLinearApproximation>& dynamics,
                                 const std::vector<ScalarFunctionQuadraticApproximation>& cost,
-                                const std::vector<VectorFunctionLinearApproximation>* constraints) {
+                                const std::vector<VectorFunctionLinearApproximation>* constraints,
+                                const std::vector<VectorFunctionLinearApproximation>* ineqConstraints) {
   const int numStages = dynamics.size();
 
   OcpSize problemSize(dynamics.size());
@@ -65,6 +66,11 @@ OcpSize extractSizesFromProblem(const std::vector<VectorFunctionLinearApproximat
   if (constraints != nullptr) {
     for (int k = 0; k < numStages + 1; k++) {
       problemSize.numIneqConstraints[k] = (*constraints)[k].f.size();
+    }
+  }
+  if (ineqConstraints != nullptr) {
+    for (int k = 0; k < numStages + 1; k++) {
+      problemSize.numIneqConstraints[k] += (*ineqConstraints)[k].f.size();
     }
   }
 

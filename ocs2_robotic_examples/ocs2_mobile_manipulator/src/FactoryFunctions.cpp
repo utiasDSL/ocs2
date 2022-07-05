@@ -33,6 +33,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <pinocchio/multibody/joint/joint-composite.hpp>
 #include <pinocchio/multibody/model.hpp>
 
+#include <boost/property_tree/info_parser.hpp>
+#include <boost/property_tree/ptree.hpp>
+
 #include <ocs2_core/misc/LoadData.h>
 #include <ocs2_pinocchio_interface/urdf.h>
 
@@ -50,6 +53,14 @@ PinocchioInterface createPinocchioInterface(const std::string& robotUrdfPath, co
     }
     case ManipulatorModelType::FloatingArmManipulator: {
       // add 6 DoF for the floating base
+      pinocchio::JointModelComposite jointComposite(2);
+      jointComposite.addJoint(pinocchio::JointModelTranslation());
+      jointComposite.addJoint(pinocchio::JointModelSphericalZYX());
+      // return pinocchio interface
+      return getPinocchioInterfaceFromUrdfFile(robotUrdfPath, jointComposite);
+    }
+    case ManipulatorModelType::FullyActuatedFloatingArmManipulator: {
+      // add 6 DOF for the fully-actuated free-floating base
       pinocchio::JointModelComposite jointComposite(2);
       jointComposite.addJoint(pinocchio::JointModelTranslation());
       jointComposite.addJoint(pinocchio::JointModelSphericalZYX());
@@ -100,6 +111,14 @@ PinocchioInterface createPinocchioInterface(const std::string& robotUrdfPath, co
       // return pinocchio interface
       return getPinocchioInterfaceFromUrdfModel(newModel, jointComposite);
     }
+    case ManipulatorModelType::FullyActuatedFloatingArmManipulator: {
+      // add 6 DOF for the free-floating base
+      pinocchio::JointModelComposite jointComposite(2);
+      jointComposite.addJoint(pinocchio::JointModelTranslation());
+      jointComposite.addJoint(pinocchio::JointModelSphericalZYX());
+      // return pinocchio interface
+      return getPinocchioInterfaceFromUrdfFile(robotUrdfPath, jointComposite);
+    }
     case ManipulatorModelType::WheelBasedMobileManipulator: {
       // add XY-yaw joint for the wheel-base
       pinocchio::JointModelComposite jointComposite(3);
@@ -136,6 +155,12 @@ ManipulatorModelInfo createManipulatorModelInfo(const PinocchioInterface& interf
       // remove the static 6-DOF base joints that are unactuated.
       info.inputDim = info.stateDim - 6;
       info.armDim = info.inputDim;
+      break;
+    }
+    case ManipulatorModelType::FullyActuatedFloatingArmManipulator: {
+      // all states are actuatable
+      info.inputDim = info.stateDim;
+      info.armDim = info.inputDim - 6;
       break;
     }
     case ManipulatorModelType::WheelBasedMobileManipulator: {

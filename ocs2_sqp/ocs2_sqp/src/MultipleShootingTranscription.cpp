@@ -46,13 +46,14 @@ Transcription setupIntermediateNode(const OptimalControlProblem& optimalControlP
   auto& performance = transcription.performance;
   auto& cost = transcription.cost;
   auto& constraints = transcription.constraints;
+  auto& ineqConstraints = transcription.ineqConstraints;
   auto& projection = transcription.constraintsProjection;
 
   // Dynamics
   // Discretization returns x_{k+1} = A_{k} * dx_{k} + B_{k} * du_{k} + b_{k}
   dynamics = sensitivityDiscretizer(*optimalControlProblem.dynamicsPtr, t, x, u, dt);
   dynamics.f -= x_next;  // make it dx_{k+1} = ...
-  performance.stateEqConstraintISE = dt * dynamics.f.squaredNorm();
+  performance.dynamicsViolationSSE = dt * dynamics.f.squaredNorm();
 
   // Precomputation for other terms
   constexpr auto request = Request::Cost + Request::SoftConstraint + Request::Constraint + Request::Approximation;
@@ -60,20 +61,15 @@ Transcription setupIntermediateNode(const OptimalControlProblem& optimalControlP
 
   // Costs: Approximate the integral with forward euler
   cost = approximateCost(optimalControlProblem, t, x, u);
-  cost.dfdxx *= dt;
-  cost.dfdux *= dt;
-  cost.dfduu *= dt;
-  cost.dfdx *= dt;
-  cost.dfdu *= dt;
-  cost.f *= dt;
-  performance.totalCost = cost.f;
+  cost *= dt;
+  performance.cost = cost.f;
 
-  // Constraints
+  // Equality constraints
   if (!optimalControlProblem.equalityConstraintPtr->empty()) {
     // C_{k} * dx_{k} + D_{k} * du_{k} + e_{k} = 0
     constraints = optimalControlProblem.equalityConstraintPtr->getLinearApproximation(t, x, u, *optimalControlProblem.preComputationPtr);
     if (constraints.f.size() > 0) {
-      performance.stateInputEqConstraintISE = dt * constraints.f.squaredNorm();
+      performance.equalityConstraintsSSE = dt * constraints.f.squaredNorm();
       if (projectStateInputEqualityConstraints) {  // Handle equality constraints using projection.
         // Projection stored instead of constraint, // TODO: benchmark between lu and qr method. LU seems slightly faster.
         projection = luConstraintProjection(constraints);
@@ -86,6 +82,16 @@ Transcription setupIntermediateNode(const OptimalControlProblem& optimalControlP
     }
   }
 
+  // Inequality constraints
+  if (!optimalControlProblem.inequalityConstraintPtr->empty()) {
+    // C_{k} * dx_{k} + D_{k} * du_{k} + e_{k} >= 0
+    ineqConstraints = optimalControlProblem.inequalityConstraintPtr->getLinearApproximation(t, x, u, *optimalControlProblem.preComputationPtr);
+    if (ineqConstraints.f.size() > 0) {
+      // constraint is only a violation if negative
+      performance.inequalityConstraintsSSE = dt * ineqConstraints.f.cwiseMin(0.0).squaredNorm();
+    }
+  }
+
   return transcription;
 }
 
@@ -94,21 +100,31 @@ PerformanceIndex computeIntermediatePerformance(const OptimalControlProblem& opt
   PerformanceIndex performance;
 
   // Dynamics
-  const vector_t dynamicsGap = discretizer(*optimalControlProblem.dynamicsPtr, t, x, u, dt) - x_next;
-  performance.stateEqConstraintISE = dt * dynamicsGap.squaredNorm();
+  vector_t dynamicsGap = discretizer(*optimalControlProblem.dynamicsPtr, t, x, u, dt);
+  dynamicsGap -= x_next;
+  performance.dynamicsViolationSSE = dt * dynamicsGap.squaredNorm();
 
   // Precomputation for other terms
   constexpr auto request = Request::Cost + Request::SoftConstraint + Request::Constraint;
   optimalControlProblem.preComputationPtr->request(request, t, x, u);
 
   // Costs
-  performance.totalCost = dt * computeCost(optimalControlProblem, t, x, u);
+  performance.cost = dt * computeCost(optimalControlProblem, t, x, u);
 
-  // Constraints
+  // Equality constraints
   if (!optimalControlProblem.equalityConstraintPtr->empty()) {
     const vector_t constraints = optimalControlProblem.equalityConstraintPtr->getValue(t, x, u, *optimalControlProblem.preComputationPtr);
     if (constraints.size() > 0) {
-      performance.stateInputEqConstraintISE = dt * constraints.squaredNorm();
+      performance.equalityConstraintsSSE = dt * constraints.squaredNorm();
+    }
+  }
+
+  // Inequality constraints
+  if (!optimalControlProblem.inequalityConstraintPtr->empty()) {
+    const vector_t ineqConstraints = optimalControlProblem.inequalityConstraintPtr->getValue(t, x, u, *optimalControlProblem.preComputationPtr);
+    if (ineqConstraints.size() > 0) {
+      // constraint is only a violation if negative
+      performance.inequalityConstraintsSSE += dt * ineqConstraints.cwiseMin(0.0).squaredNorm();
     }
   }
 
@@ -121,14 +137,16 @@ TerminalTranscription setupTerminalNode(const OptimalControlProblem& optimalCont
   auto& performance = transcription.performance;
   auto& cost = transcription.cost;
   auto& constraints = transcription.constraints;
+  auto& ineqConstraints = transcription.ineqConstraints;
 
   constexpr auto request = Request::Cost + Request::SoftConstraint + Request::Approximation;
   optimalControlProblem.preComputationPtr->requestFinal(request, t, x);
 
   cost = approximateFinalCost(optimalControlProblem, t, x);
-  performance.totalCost = cost.f;
+  performance.cost = cost.f;
 
   constraints = VectorFunctionLinearApproximation::Zero(0, x.size(), 0);
+  ineqConstraints = VectorFunctionLinearApproximation::Zero(0, x.size(), 0);
 
   return transcription;
 }
@@ -139,7 +157,7 @@ PerformanceIndex computeTerminalPerformance(const OptimalControlProblem& optimal
   constexpr auto request = Request::Cost + Request::SoftConstraint;
   optimalControlProblem.preComputationPtr->requestFinal(request, t, x);
 
-  performance.totalCost = computeFinalCost(optimalControlProblem, t, x);
+  performance.cost = computeFinalCost(optimalControlProblem, t, x);
 
   return performance;
 }
@@ -152,6 +170,7 @@ EventTranscription setupEventNode(const OptimalControlProblem& optimalControlPro
   auto& dynamics = transcription.dynamics;
   auto& cost = transcription.cost;
   auto& constraints = transcription.constraints;
+  auto& ineqConstraints = transcription.ineqConstraints;
 
   constexpr auto request = Request::Cost + Request::SoftConstraint + Request::Dynamics + Request::Approximation;
   optimalControlProblem.preComputationPtr->requestPreJump(request, t, x);
@@ -161,12 +180,13 @@ EventTranscription setupEventNode(const OptimalControlProblem& optimalControlPro
   dynamics = optimalControlProblem.dynamicsPtr->jumpMapLinearApproximation(t, x);
   dynamics.f -= x_next;                // make it dx_{k+1} = ...
   dynamics.dfdu.setZero(x.size(), 0);  // Overwrite derivative that shouldn't exist.
-  performance.stateEqConstraintISE = dynamics.f.squaredNorm();
+  performance.dynamicsViolationSSE = dynamics.f.squaredNorm();
 
   cost = approximateEventCost(optimalControlProblem, t, x);
-  performance.totalCost = cost.f;
+  performance.cost = cost.f;
 
   constraints = VectorFunctionLinearApproximation::Zero(0, x.size(), 0);
+  ineqConstraints = VectorFunctionLinearApproximation::Zero(0, x.size(), 0);
   return transcription;
 }
 
@@ -179,9 +199,9 @@ PerformanceIndex computeEventPerformance(const OptimalControlProblem& optimalCon
 
   // Dynamics
   const vector_t dynamicsGap = optimalControlProblem.dynamicsPtr->computeJumpMap(t, x) - x_next;
-  performance.stateEqConstraintISE = dynamicsGap.squaredNorm();
+  performance.dynamicsViolationSSE = dynamicsGap.squaredNorm();
 
-  performance.totalCost = computeEventCost(optimalControlProblem, t, x);
+  performance.cost = computeEventCost(optimalControlProblem, t, x);
 
   return performance;
 }

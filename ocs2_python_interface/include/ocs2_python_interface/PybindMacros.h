@@ -38,42 +38,27 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 using namespace pybind11::literals;
 
 //! convenience macro to bind all kinds of std::vector-like types
-#define VECTOR_TYPE_BINDING(VTYPE, NAME)                                                     \
-  pybind11::class_<VTYPE>(m, NAME)                                                           \
-      .def(pybind11::init<>())                                                               \
-      .def("clear", &VTYPE::clear)                                                           \
-      .def("pop_back", &VTYPE::pop_back)                                                     \
-      .def("push_back", [](VTYPE& v, const VTYPE::value_type& val) { v.push_back(val); })    \
-      .def("resize", [](VTYPE& v, size_t i) { v.resize(i); })                                \
-      .def("__getitem__",                                                                    \
-           [](const VTYPE& v, size_t i) {                                                    \
-             if (i >= v.size()) throw pybind11::index_error();                               \
-             return v[i];                                                                    \
-           })                                                                                \
-      .def("__setitem__",                                                                    \
-           [](VTYPE& v, size_t i, VTYPE::value_type val) {                                   \
-             if (i >= v.size()) throw pybind11::index_error();                               \
-             v[i] = val;                                                                     \
-           })                                                                                \
-      .def("__len__", [](const VTYPE& v) { return v.size(); })                               \
-      .def("__iter__", [](VTYPE& v) { return pybind11::make_iterator(v.begin(), v.end()); }, \
-           pybind11::keep_alive<0, 1>()) /* Keep vector alive while iterator is used */ \
-      .def(pybind11::pickle(                                                                   \
-           [](const VTYPE& v) {                                                              \
-               pybind11::list l = pybind11::cast(v); \
-               return pybind11::make_tuple(l);                                               \
-           },                                                                                \
-           [](pybind11::tuple t) {                \
-           if (t.size() != 1) {                                                               \
-               throw std::runtime_error("Invalid state!"); \
-           }                                               \
-           VTYPE v; \
-           pybind11::list l = t[0].cast<pybind11::list>(); \
-           for (int i = 0; i < l.size(); ++i) { \
-                v.push_back(l[i].cast<VTYPE::value_type>()); \
-           } \
-           return v;             \
-      }));
+#define VECTOR_TYPE_BINDING(VTYPE, NAME)                                                    \
+  pybind11::class_<VTYPE>(m, NAME)                                                          \
+      .def(pybind11::init<>())                                                              \
+      .def("clear", &VTYPE::clear)                                                          \
+      .def("pop_back", &VTYPE::pop_back)                                                    \
+      .def("push_back", [](VTYPE& v, const VTYPE::value_type& val) { v.push_back(val); })   \
+      .def("resize", [](VTYPE& v, size_t i) { v.resize(i); })                               \
+      .def("__getitem__",                                                                   \
+           [](const VTYPE& v, size_t i) {                                                   \
+             if (i >= v.size()) throw pybind11::index_error();                              \
+             return v[i];                                                                   \
+           })                                                                               \
+      .def("__setitem__",                                                                   \
+           [](VTYPE& v, size_t i, VTYPE::value_type val) {                                  \
+             if (i >= v.size()) throw pybind11::index_error();                              \
+             v[i] = val;                                                                    \
+           })                                                                               \
+      .def("__len__", [](const VTYPE& v) { return v.size(); })                              \
+      .def(                                                                                 \
+          "__iter__", [](VTYPE& v) { return pybind11::make_iterator(v.begin(), v.end()); }, \
+          pybind11::keep_alive<0, 1>()); /* Keep vector alive while iterator is used */
 
 /**
  * @brief Convenience macro to bind robot interface with all required vectors.
