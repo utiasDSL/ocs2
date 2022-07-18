@@ -136,6 +136,14 @@ void MultipleShootingSolver::runImpl(scalar_t initTime, const vector_t& initStat
   vector_array_t x, u;
   initializeStateInputTrajectories(initState, timeDiscretization, x, u);
 
+  std::cout << "x[0] = " << x[0] << std::endl;
+  std::cout << "x[1] = " << x[1] << std::endl;
+  std::cout << "x[2] = " << x[2] << std::endl;
+
+  std::cout << "u[0] = " << u[0] << std::endl;
+  std::cout << "u[1] = " << u[1] << std::endl;
+  std::cout << "u[2] = " << u[2] << std::endl;
+
   // Initialize references
   for (auto& ocpDefinition : ocpDefinitions_) {
     const auto& targetTrajectories = this->getReferenceManager().getTargetTrajectories();
@@ -161,6 +169,13 @@ void MultipleShootingSolver::runImpl(scalar_t initTime, const vector_t& initStat
     const vector_t delta_x0 = initState - x[0];
     const auto deltaSolution = getOCPSolution(delta_x0);
     solveQpTimer_.endTimer();
+
+    // std::cout << x[1] << std::endl;
+    // std::cout << "~~~" << std::endl;
+    // std::cout << u[1] << std::endl;
+    // std::cout << "~~~" << std::endl;
+    // std::cout << deltaSolution.deltaUSol[1] << std::endl;
+    // std::cout << deltaSolution.deltaXSol[0] << std::endl;
 
     // Apply step
     linesearchTimer_.startTimer();
@@ -248,8 +263,9 @@ MultipleShootingSolver::OcpSubproblemSolution MultipleShootingSolver::getOCPSolu
   auto& deltaXSol = solution.deltaXSol;
   auto& deltaUSol = solution.deltaUSol;
   hpipm_status status;
-  const bool hasStateInputConstraints = !ocpDefinitions_.front().equalityConstraintPtr->empty();
-  if (hasStateInputConstraints && !settings_.projectStateInputEqualityConstraints) {
+  const bool hasStateInputConstraints = !ocpDefinitions_.front().equalityConstraintPtr->empty() || !ocpDefinitions_.front().inequalityConstraintPtr->empty();
+  // TODO this logic must change
+  if (hasStateInputConstraints) { // && !settings_.projectStateInputEqualityConstraints) {
     hpipmInterface_.resize(hpipm_interface::extractSizesFromProblem(dynamics_, cost_, &constraints_, &ineqConstraints_));
     status = hpipmInterface_.solve(delta_x0, dynamics_, cost_, &constraints_, &ineqConstraints_, deltaXSol, deltaUSol, settings_.printSolverStatus);
   } else {  // without constraints, or when using projection, we have an unconstrained QP.
@@ -507,6 +523,8 @@ multiple_shooting::StepInfo MultipleShootingSolver::takeStep(const PerformanceIn
   multiple_shooting::StepInfo stepInfo;
 
   scalar_t alpha = 1.0;
+  scalar_t penalty = 1.0;
+  scalar_t penaltyFactor = 2.0;
   vector_array_t xNew(x.size());
   vector_array_t uNew(u.size());
   do {
@@ -529,6 +547,7 @@ multiple_shooting::StepInfo MultipleShootingSolver::takeStep(const PerformanceIn
       if (newConstraintViolation > settings_.g_max) {
         // High constraint violation. Only accept decrease in constraints.
         stepInfo.stepType = StepType::CONSTRAINT;
+        // penalty *= penaltyFactor;
         return newConstraintViolation < ((1.0 - settings_.gamma_c) * baselineConstraintViolation);
       } else if (newConstraintViolation < settings_.g_min && baselineConstraintViolation < settings_.g_min &&
                  subproblemSolution.armijoDescentMetric < 0.0) {

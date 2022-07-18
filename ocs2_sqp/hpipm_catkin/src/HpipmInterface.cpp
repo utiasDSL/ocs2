@@ -27,6 +27,8 @@ OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************************************************************/
 
+#include <iostream>
+
 #include "hpipm_catkin/HpipmInterface.h"
 
 #include <ocs2_core/misc/LinearAlgebra.h>
@@ -278,6 +280,9 @@ class HpipmInterface::Impl {
         d_ineq[0] = -constr[0].f;
         d_ineq[0].noalias() -= constr[0].dfdx * x0;
         D_ineq[0] = constr[0].dfdu;
+        // TODO works for state-only constraints but will break constraints
+        // with inputs
+        C_ineq[0] = constr[0].dfdx;
       }
 
       // k = 1 -> (N-1)
@@ -308,19 +313,34 @@ class HpipmInterface::Impl {
     std::vector<scalar_t*> llg(N + 1, nullptr);
     std::vector<scalar_t*> uug(N + 1, nullptr);
 
+    size_t nx = dynamics[1].dfdx.cols();
+    size_t nu = dynamics[1].dfdu.cols();
+
     // Combine equality and inequality constraints and extract raw data
     for (int k = 0; k <= N; k++) {
         // Make block diagonal C = [[C_eq, 0     ],
         //                          [0,    C_ineq]]
-        C_con[k].setZero(C_eq[k].rows() + C_ineq[k].rows(), C_eq[k].cols() + C_ineq[k].cols());
-        C_con[k].topLeftCorner(C_eq[k].rows(), C_eq[k].cols()) = C_eq[k];
-        C_con[k].bottomRightCorner(C_ineq[k].rows(), C_ineq[k].cols()) = C_ineq[k];
+        // C_con[k].setZero(C_eq[k].rows() + C_ineq[k].rows(), C_eq[k].cols() + C_ineq[k].cols());
+        // C_con[k].topLeftCorner(C_eq[k].rows(), C_eq[k].cols()) = C_eq[k];
+        // C_con[k].bottomRightCorner(C_ineq[k].rows(), C_ineq[k].cols()) = C_ineq[k];
+        // CC[k] = C_con[k].data();
+
+        C_con[k].setZero(C_eq[k].rows() + C_ineq[k].rows(), nx);
+        C_con[k].topRows(C_eq[k].rows()) = C_eq[k];
+        C_con[k].bottomRows(C_ineq[k].rows()) = C_ineq[k];
         CC[k] = C_con[k].data();
 
+        // std::cout << "C_ineq shape = (" << C_ineq[k].rows() << ", " << C_ineq[k].cols() << ")" << std::endl;
+
         // Make block diagonal D
-        D_con[k].setZero(D_eq[k].rows() + D_ineq[k].rows(), D_eq[k].cols() + D_ineq[k].cols());
-        D_con[k].topLeftCorner(D_eq[k].rows(), D_eq[k].cols()) = D_eq[k];
-        D_con[k].bottomRightCorner(D_ineq[k].rows(), D_ineq[k].cols()) = D_ineq[k];
+        // D_con[k].setZero(D_eq[k].rows() + D_ineq[k].rows(), D_eq[k].cols() + D_ineq[k].cols());
+        // D_con[k].topLeftCorner(D_eq[k].rows(), D_eq[k].cols()) = D_eq[k];
+        // D_con[k].bottomRightCorner(D_ineq[k].rows(), D_ineq[k].cols()) = D_ineq[k];
+        // DD[k] = D_con[k].data();
+
+        D_con[k].setZero(D_eq[k].rows() + D_ineq[k].rows(), nu);
+        D_con[k].topRows(D_eq[k].rows()) = D_eq[k];
+        D_con[k].bottomRows(D_ineq[k].rows()) = D_ineq[k];
         DD[k] = D_con[k].data();
 
         // Equality constraints have both upper and lower bounds (which are the
@@ -329,6 +349,7 @@ class HpipmInterface::Impl {
         // constraints to make them unbounded.
         d_con[k].setZero(d_eq[k].rows() + d_ineq[k].rows());
         d_con[k] << d_eq[k], d_ineq[k];
+        // d_con[k] = d_con[k].cwiseMin(-1e-2);
         llg[k] = d_con[k].data();
         uug[k] = d_con[k].data();
 
@@ -336,6 +357,14 @@ class HpipmInterface::Impl {
         upper_bound_mask[k].head(d_eq[k].rows()).setOnes();
         d_ocp_qp_set_ug_mask(k, upper_bound_mask[k].data(), &qp_);
     }
+    // d_con[0] = d_con[0].cwiseMin(-1e-2);
+
+    std::cout << "C[0] = " << C_con[0] << std::endl;
+    std::cout << "D[0] = " << D_con[0] << std::endl;
+
+    std::cout << "d[0] = " << d_con[0] << std::endl;
+    std::cout << "d[1] = " << d_con[1] << std::endl;
+    std::cout << "d[2] = " << d_con[2] << std::endl;
 
     // === Unused ===
     int** hidxbx = nullptr;
