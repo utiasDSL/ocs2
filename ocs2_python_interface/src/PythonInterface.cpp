@@ -255,34 +255,6 @@ vector_t PythonInterface::stateInputEqualityConstraint(
         t, x, u, *problem_.preComputationPtr);
 }
 
-// Get the value of the constraint underlying a soft state-input inequality
-// constraint by name
-vector_t PythonInterface::softStateInputInequalityConstraint(
-    const std::string& name, scalar_t t, Eigen::Ref<const vector_t> x,
-    Eigen::Ref<const vector_t> u) {
-    problem_.preComputationPtr->request(Request::Constraint, t, x, u);
-    return dynamic_cast<StateInputSoftConstraint*>(
-               &problem_.softConstraintPtr->get(name))
-        ->get()
-        .getValue(t, x, u, *problem_.preComputationPtr);
-}
-
-// Get the value of a hard state-input inequality constraint by name
-vector_t PythonInterface::stateInputInequalityConstraint(
-    const std::string& name, scalar_t t, Eigen::Ref<const vector_t> x,
-    Eigen::Ref<const vector_t> u) {
-    problem_.preComputationPtr->request(Request::Constraint, t, x, u);
-    return problem_.inequalityConstraintPtr->get(name).getValue(t, x, u, *problem_.preComputationPtr);
-}
-
-vector_t PythonInterface::stateInequalityConstraint(
-    const std::string& name, scalar_t t, Eigen::Ref<const vector_t> x) {
-    return dynamic_cast<StateSoftConstraint*>(
-               &problem_.stateSoftConstraintPtr->get(name))
-        ->get()
-        .getValue(t, x, *problem_.preComputationPtr);
-}
-
 /******************************************************************************************************/
 /******************************************************************************************************/
 /******************************************************************************************************/

@@ -176,12 +176,6 @@ class PythonInterface {
    */
   vector_t stateInputEqualityConstraintLagrangian(scalar_t t, Eigen::Ref<const vector_t> x, Eigen::Ref<const vector_t> u);
 
-  vector_t softStateInputInequalityConstraint(const std::string& name, scalar_t t, Eigen::Ref<const vector_t> x, Eigen::Ref<const vector_t> u);
-
-vector_t stateInputInequalityConstraint(const std::string& name, scalar_t t, Eigen::Ref<const vector_t> x, Eigen::Ref<const vector_t> u);
-
-  vector_t stateInequalityConstraint(const std::string& name, scalar_t t, Eigen::Ref<const vector_t> x);
-
   /**
    * @brief Visualize the time-state-input trajectory
    * @param[in] t Array of times
