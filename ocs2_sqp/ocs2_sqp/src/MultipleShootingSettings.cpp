@@ -49,6 +49,7 @@ Settings loadSettings(const std::string& filename, const std::string& fieldName,
   }
 
   loadData::loadPtreeValue(pt, settings.sqpIteration, fieldName + ".sqpIteration", verbose);
+  loadData::loadPtreeValue(pt, settings.initSqpIteration, fieldName + ".initSqpIteration", verbose);
   loadData::loadPtreeValue(pt, settings.deltaTol, fieldName + ".deltaTol", verbose);
   loadData::loadPtreeValue(pt, settings.alpha_decay, fieldName + ".alpha_decay", verbose);
   loadData::loadPtreeValue(pt, settings.alpha_min, fieldName + ".alpha_min", verbose);

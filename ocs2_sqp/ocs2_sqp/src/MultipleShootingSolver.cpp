@@ -611,7 +611,9 @@ multiple_shooting::StepInfo MultipleShootingSolver::takeStep(const PerformanceIn
 multiple_shooting::Convergence MultipleShootingSolver::checkConvergence(int iteration, const PerformanceIndex& baseline,
                                                                         const multiple_shooting::StepInfo& stepInfo) const {
   using Convergence = multiple_shooting::Convergence;
-  if ((iteration + 1) >= settings_.sqpIteration) {
+  if (numProblems_ == 0 && (iteration + 1) >= settings_.initSqpIteration) {
+      return Convergence::ITERATIONS;
+  } else if (numProblems_ > 0 && (iteration + 1) >= settings_.sqpIteration) {
     // Converged because the next iteration would exceed the specified number of iterations
     return Convergence::ITERATIONS;
   } else if (stepInfo.stepSize < settings_.alpha_min) {
