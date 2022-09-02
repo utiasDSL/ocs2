@@ -170,7 +170,11 @@ ad_vector_t SelfCollisionCppAd::distanceCalculationAd(PinocchioInterfaceCppAd& p
     const auto joint2Orientation = matrixToQuaternion(data.oMi[joint2].rotation());
     const ad_vector_t point2InWorld = joint2Position + joint2Orientation * point2;
 
-    results[i] = points[i * numberOfParamsPerResult_ + 6] * (point2InWorld - point1InWorld).norm() - minimumDistance_;
+    // Original version:
+    // results[i] = points[i * numberOfParamsPerResult_ + 6] * (point2InWorld - point1InWorld).norm() - minimumDistance_;
+
+    // Revised version: always <= to the above version, but is differentiable everywhere (in particular, at 0) as long as minimumDistance_ > 0
+    results[i] = points[i * numberOfParamsPerResult_ + 6] * sqrt((point2InWorld - point1InWorld).squaredNorm() + minimumDistance_*minimumDistance_) - 2*minimumDistance_;
   }
   return results;
 }
