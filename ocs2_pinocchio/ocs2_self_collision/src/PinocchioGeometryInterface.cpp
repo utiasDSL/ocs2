@@ -62,6 +62,12 @@ PinocchioGeometryInterface::PinocchioGeometryInterface(const
   // addCollisionObjectPairs(pinocchioInterface, collisionObjectPairs);
 }
 
+
+PinocchioGeometryInterface::PinocchioGeometryInterface(const pinocchio::GeometryModel& geomModel) : geometryModelPtr_(new pinocchio::GeometryModel(geomModel)) {
+    geometryModelPtr_->removeAllCollisionPairs();
+}
+
+
 PinocchioGeometryInterface::PinocchioGeometryInterface(const PinocchioInterface& pinocchioInterface,
                                                        const std::vector<std::pair<std::string, std::string>>& collisionLinkPairs,
                                                        const std::vector<std::pair<size_t, size_t>>& collisionObjectPairs)

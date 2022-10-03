@@ -15,8 +15,10 @@ find_package(catkin REQUIRED COMPONENTS
 )
 
 find_package(PkgConfig REQUIRED)
-pkg_check_modules(pinocchio REQUIRED pinocchio)
-pkg_check_modules(hpp-fcl REQUIRED hpp-fcl)
+#pkg_check_modules(pinocchio REQUIRED pinocchio)
+#pkg_check_modules(hpp-fcl REQUIRED hpp-fcl)
+find_package(pinocchio REQUIRED)
+find_package(hpp-fcl REQUIRED)
 # requires liboctomap-dev and libassimp-dev
 
 find_package(Eigen3 3.3 REQUIRED NO_MODULE)
@@ -47,6 +49,7 @@ set(FLAGS
   -Wno-invalid-partial-specialization   # to silence warning with unsupported Eigen Tensor
   -DPINOCCHIO_URDFDOM_TYPEDEF_SHARED_PTR
   -DPINOCCHIO_URDFDOM_USE_STD_SHARED_PTR
+  -DPINOCCHIO_WITH_HPP_FCL
 )
 
 include_directories(

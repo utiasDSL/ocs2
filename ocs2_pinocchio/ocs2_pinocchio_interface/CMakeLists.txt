@@ -14,7 +14,8 @@ find_package(catkin REQUIRED COMPONENTS
 )
 
 find_package(PkgConfig REQUIRED)
-pkg_check_modules(pinocchio REQUIRED pinocchio)
+# pkg_check_modules(pinocchio REQUIRED pinocchio)
+find_package(pinocchio REQUIRED)
 
 find_package(Eigen3 3.3 REQUIRED NO_MODULE)
 

@@ -58,6 +58,8 @@ class PinocchioGeometryInterface final {
 
   PinocchioGeometryInterface(const PinocchioInterface& pinocchioInterface);
 
+  PinocchioGeometryInterface(const pinocchio::GeometryModel& geomModel);
+
   /**
    * Constructor
    *

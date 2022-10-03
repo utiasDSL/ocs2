@@ -136,13 +136,13 @@ void MultipleShootingSolver::runImpl(scalar_t initTime, const vector_t& initStat
   vector_array_t x, u;
   initializeStateInputTrajectories(initState, timeDiscretization, x, u);
 
-  std::cout << "x[0] = " << x[0] << std::endl;
-  std::cout << "x[1] = " << x[1] << std::endl;
-  std::cout << "x[2] = " << x[2] << std::endl;
-
-  std::cout << "u[0] = " << u[0] << std::endl;
-  std::cout << "u[1] = " << u[1] << std::endl;
-  std::cout << "u[2] = " << u[2] << std::endl;
+  // std::cout << "x[0] = " << x[0] << std::endl;
+  // std::cout << "x[1] = " << x[1] << std::endl;
+  // std::cout << "x[2] = " << x[2] << std::endl;
+  //
+  // std::cout << "u[0] = " << u[0] << std::endl;
+  // std::cout << "u[1] = " << u[1] << std::endl;
+  // std::cout << "u[2] = " << u[2] << std::endl;
 
   // Initialize references
   for (auto& ocpDefinition : ocpDefinitions_) {
