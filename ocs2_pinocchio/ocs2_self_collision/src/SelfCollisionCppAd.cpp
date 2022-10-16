@@ -92,6 +92,19 @@ std::pair<vector_t, matrix_t> SelfCollisionCppAd::getLinearApproximation(const P
     pointsInWorldFrame.segment<3>(i * numberOfParamsPerResult_) = distanceArray[i].nearest_points[0];
     pointsInWorldFrame.segment<3>(i * numberOfParamsPerResult_ + 3) = distanceArray[i].nearest_points[1];
     pointsInWorldFrame[i * numberOfParamsPerResult_ + 6] = distanceArray[i].min_distance >= 0 ? 1.0 : -1.0;
+    vector_t normal = distanceArray[i].nearest_points[1] - distanceArray[i].nearest_points[0];
+
+    // Pinocchio (and underneath hpp-fcl) provide contact normals when the
+    // objects are in contact, otherwise it is NaNs. Use if available.
+    if (!distanceArray[i].normal.hasNaN()) {
+        normal = distanceArray[i].normal;
+    } else {
+        normal.normalize();
+        if (distanceArray[i].min_distance < 0) {
+            normal = -normal;
+        }
+    }
+    pointsInWorldFrame.segment<3>(i * numberOfParamsPerResult_ + 7) = normal;
   }
 
   const auto pointsInLinkFrame = cppAdInterfaceLinkPoints_->getFunctionValue(q, pointsInWorldFrame);
@@ -120,13 +133,15 @@ ad_vector_t SelfCollisionCppAd::computeLinkPointsAd(PinocchioInterfaceCppAd& pin
     const auto& joint2 = geometryModel.geometryObjects[collisionPair.second].parentJoint;
 
     const auto joint1Position = data.oMi[joint1].translation();
-    const auto joint1Orientation = matrixToQuaternion(data.oMi[joint1].rotation());
-    const quaternion_t joint1OrientationInverse = joint1Orientation.conjugate();
+    // const auto joint1Orientation = matrixToQuaternion(data.oMi[joint1].rotation());
+    // const quaternion_t joint1OrientationInverse = joint1Orientation.conjugate();
+    const auto joint1OrientationInverse = data.oMi[joint1].rotation().transpose();
     const vector3_t joint1PositionInverse = joint1OrientationInverse * -joint1Position;
 
     const auto joint2Position = data.oMi[joint2].translation();
-    const auto joint2Orientation = matrixToQuaternion(data.oMi[joint2].rotation());
-    const quaternion_t joint2OrientationInverse = joint2Orientation.conjugate();
+    // const auto joint2Orientation = matrixToQuaternion(data.oMi[joint2].rotation());
+    // const quaternion_t joint2OrientationInverse = joint2Orientation.conjugate();
+    const auto joint2OrientationInverse = data.oMi[joint2].rotation().transpose();
     const vector3_t joint2PositionInverse = joint2OrientationInverse * -joint2Position;
 
     const ad_vector_t point1 = points.segment(i * numberOfParamsPerResult_, 3);
@@ -138,6 +153,7 @@ ad_vector_t SelfCollisionCppAd::computeLinkPointsAd(PinocchioInterfaceCppAd& pin
     pointsInLinkFrames.segment<3>(i * numberOfParamsPerResult_ + 3).noalias() += joint2OrientationInverse * point2;
     pointsInLinkFrames[i * numberOfParamsPerResult_ + 6] =
         CppAD::CondExpGt(points[i * numberOfParamsPerResult_ + 6], ad_scalar_t(0.0), ad_scalar_t(1.0), ad_scalar_t(-1.0));
+    pointsInLinkFrames.segment<3>(i * numberOfParamsPerResult_ + 7) = points.segment(i * numberOfParamsPerResult_ + 7, 3);
   }
   return pointsInLinkFrames;
 }
@@ -162,19 +178,24 @@ ad_vector_t SelfCollisionCppAd::distanceCalculationAd(PinocchioInterfaceCppAd& p
 
     const ad_vector_t point1 = points.segment(i * numberOfParamsPerResult_, 3);
     const auto joint1Position = data.oMi[joint1].translation();
-    const auto joint1Orientation = matrixToQuaternion(data.oMi[joint1].rotation());
+    // const auto joint1Orientation = matrixToQuaternion(data.oMi[joint1].rotation());
+    const auto joint1Orientation = data.oMi[joint1].rotation();
     const ad_vector_t point1InWorld = joint1Position + joint1Orientation * point1;
 
     const ad_vector_t point2 = points.segment(i * numberOfParamsPerResult_ + 3, 3);
     const auto joint2Position = data.oMi[joint2].translation();
-    const auto joint2Orientation = matrixToQuaternion(data.oMi[joint2].rotation());
+    // const auto joint2Orientation = matrixToQuaternion(data.oMi[joint2].rotation());
+    const auto joint2Orientation = data.oMi[joint2].rotation();
     const ad_vector_t point2InWorld = joint2Position + joint2Orientation * point2;
 
     // Original version:
     // results[i] = points[i * numberOfParamsPerResult_ + 6] * (point2InWorld - point1InWorld).norm() - minimumDistance_;
 
     // Revised version: always <= to the above version, but is differentiable everywhere (in particular, at 0) as long as minimumDistance_ > 0
-    results[i] = points[i * numberOfParamsPerResult_ + 6] * sqrt((point2InWorld - point1InWorld).squaredNorm() + minimumDistance_*minimumDistance_) - 2*minimumDistance_;
+    // NOTE: points[i * numberOfParamsPerResult_ + 6] = 1.0 if non-penetrating, -1.0 if penetrating
+    // results[i] = points[i * numberOfParamsPerResult_ + 6] * sqrt((point2InWorld - point1InWorld).squaredNorm() + minimumDistance_*minimumDistance_) - 2*minimumDistance_;
+    const ad_vector_t normal = points.segment(i * numberOfParamsPerResult_ + 7, 3);
+    results[i] = normal.dot(point2InWorld - point1InWorld) - minimumDistance_;
   }
   return results;
 }

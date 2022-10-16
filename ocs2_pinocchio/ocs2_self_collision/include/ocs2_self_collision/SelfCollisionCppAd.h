@@ -106,7 +106,7 @@ class SelfCollisionCppAd {
                                     const ad_vector_t& points) const;
 
   // Number of params per result = 3 + 3 + 1 (nearest point 1, nearest point 2, sign indicator)
-  const size_t numberOfParamsPerResult_ = 7;
+  const size_t numberOfParamsPerResult_ = 7 + 3;
 
   std::unique_ptr<CppAdInterface> cppAdInterfaceDistanceCalculation_;
   std::unique_ptr<CppAdInterface> cppAdInterfaceLinkPoints_;
