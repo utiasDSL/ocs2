@@ -301,6 +301,28 @@ PinocchioEndEffectorKinematicsCppAd::getOrientationCppAd(
     return rotation;
 }
 
+ad_vector_t PinocchioEndEffectorKinematicsCppAd::getOrientationErrorCppAd(
+    const ad_vector_t& state, const ad_quaternion_t& quat_ref) {
+
+    const auto& model = pinocchioInterfaceCppAdPtr_->getModel();
+    auto& data = pinocchioInterfaceCppAdPtr_->getData();
+    const ad_vector_t q =
+        pinocchioMappingPtr_->getPinocchioJointPosition(state);
+
+    pinocchio::forwardKinematics(model, data, q);
+    pinocchio::updateFramePlacements(model, data);
+
+    if (endEffectorFrameIds_.size() > 1) {
+        std::cerr << "Only one end effector supported for getOrientationCppAd"
+                  << std::endl;
+    }
+
+    const size_t frameId = endEffectorFrameIds_[0];
+    const ad_quaternion_t orn = matrixToQuaternion(data.oMf[frameId].rotation());
+    ad_vector_t error = ocs2::quaternionDistance(orn, quat_ref);
+    return error;
+}
+
 ad_vector_t PinocchioEndEffectorKinematicsCppAd::getAngularVelocityCppAd(
     const ad_vector_t& state, const ad_vector_t& input) {
 

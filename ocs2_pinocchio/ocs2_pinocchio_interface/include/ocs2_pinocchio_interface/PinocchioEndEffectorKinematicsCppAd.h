@@ -140,6 +140,7 @@ class PinocchioEndEffectorKinematicsCppAd final
                                      const ad_vector_t& input);
 
     ad_rotmat_t getOrientationCppAd(const ad_vector_t& state);
+    ad_vector_t getOrientationErrorCppAd(const ad_vector_t& state, const ad_quaternion_t& quat_ref);
     ad_vector_t getAngularVelocityCppAd(const ad_vector_t& state,
                                         const ad_vector_t& input);
     ad_vector_t getAngularAccelerationCppAd(const ad_vector_t& state,

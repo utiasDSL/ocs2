@@ -26,7 +26,8 @@ set(BLASFEO_EXAMPLES OFF CACHE BOOL "Examples enabled")
 # Download & build source
 FetchContent_Declare(blasfeoDownload
 	GIT_REPOSITORY https://github.com/giaf/blasfeo
-	GIT_TAG ae6e2d1dea015862a09990b95905038a756ffc7d
+	# GIT_TAG ae6e2d1dea015862a09990b95905038a756ffc7d
+  GIT_TAG 386e6556ce643e9863458c2479192de4c9689b81
 	UPDATE_COMMAND ""
 	SOURCE_DIR ${BLASFEO_DOWNLOAD_DIR}
 	BINARY_DIR ${BLASFEO_BUILD_DIR}
