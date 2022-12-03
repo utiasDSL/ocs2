@@ -32,6 +32,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <vector>
 
 #include <ocs2_core/Types.h>
+#include <ocs2_core/constraint/BoundConstraint.h>
 
 namespace ocs2 {
 namespace hpipm_interface {
@@ -90,6 +91,7 @@ OcpSize extractSizesFromProblem(const std::vector<VectorFunctionLinearApproximat
                                 const std::vector<ScalarFunctionQuadraticApproximation>& cost,
                                 const std::vector<VectorFunctionLinearApproximation>* constraints,
                                 const std::vector<VectorFunctionLinearApproximation>* ineqConstraints,
+                                const std::vector<BoundConstraint>* boundConstraints,
                                 bool useSlack);
 
 }  // namespace hpipm_interface

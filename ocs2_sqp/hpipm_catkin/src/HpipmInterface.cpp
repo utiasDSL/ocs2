@@ -174,7 +174,7 @@ class HpipmInterface::Impl {
 
   hpipm_status solve(const vector_t& x0, std::vector<VectorFunctionLinearApproximation>& dynamics,
                      std::vector<ScalarFunctionQuadraticApproximation>& cost, std::vector<VectorFunctionLinearApproximation>* constraints,
-                     std::vector<VectorFunctionLinearApproximation>* ineqConstraints, vector_array_t& stateTrajectory,
+                     std::vector<VectorFunctionLinearApproximation>* ineqConstraints, std::vector<BoundConstraint>* boundConstraints, vector_array_t& stateTrajectory,
                      vector_array_t& inputTrajectory, bool verbose) {
     const int N = ocpSize_.numStages;
     verifySizes(x0, dynamics, cost, constraints, ineqConstraints);
@@ -351,7 +351,7 @@ class HpipmInterface::Impl {
 
     if (settings_.use_slack) {
         for (int k = 0; k <= N; k++) {
-          size_t n = ocpSize_.numIneqSlack[k];
+          size_t n = ocpSize_.numIneqSlack[k] + ocpSize_.numStateBoxSlack[k] + ocpSize_.numInputBoxSlack[k];
           Zl[k].setConstant(n, settings_.slack_lower_L2_penalty);
           Zu[k].setConstant(n, settings_.slack_upper_L2_penalty);
           zl[k].setConstant(n, settings_.slack_lower_L1_penalty);
@@ -372,17 +372,39 @@ class HpipmInterface::Impl {
         }
     }
 
-    // === Unused ===
-    int** hidxbx = nullptr;
-    scalar_t** hlbx = nullptr;
-    scalar_t** hubx = nullptr;
-    int** hidxbu = nullptr;
-    scalar_t** hlbu = nullptr;
-    scalar_t** hubu = nullptr;
+    // State box constraints
+    std::vector<scalar_t*> lbx(N + 1, nullptr);
+    std::vector<scalar_t*> ubx(N + 1, nullptr);
+    std::vector<int*> idxbx(N + 1, nullptr);
+
+    // Input box constraints
+    std::vector<scalar_t*> lbu(N + 1, nullptr);
+    std::vector<scalar_t*> ubu(N + 1, nullptr);
+    std::vector<int*> idxbu(N + 1, nullptr);
+
+    if (boundConstraints != nullptr) {
+        auto& bounds = *boundConstraints;
+
+        if (bounds[0].state_idx_.size() > 0) {
+            for (int k = 1; k <= N; k++) {
+                lbx[k] = bounds[k].state_lb_.data();
+                ubx[k] = bounds[k].state_ub_.data();
+                idxbx[k] = bounds[k].state_idx_.data();
+            }
+        }
+
+        if (bounds[0].input_idx_.size() > 0) {
+            for (int k = 0; k <= N; k++) {
+                lbu[k] = bounds[k].input_lb_.data();
+                ubu[k] = bounds[k].input_ub_.data();
+                idxbu[k] = bounds[k].input_idx_.data();
+            }
+        }
+    }
 
     // === Set and solve ===
-    d_ocp_qp_set_all(AA.data(), BB.data(), bb.data(), QQ.data(), SS.data(), RR.data(), qq.data(), rr.data(), hidxbx, hlbx, hubx, hidxbu,
-                     hlbu, hubu, CC.data(), DD.data(), llg.data(), uug.data(), ZZl.data(), ZZu.data(), zzl.data(), zzu.data(), iidxs.data(), lls.data(), lus.data(), &qp_);
+    d_ocp_qp_set_all(AA.data(), BB.data(), bb.data(), QQ.data(), SS.data(), RR.data(), qq.data(), rr.data(), idxbx.data(), lbx.data(), ubx.data(), idxbu.data(),
+                     lbu.data(), ubu.data(), CC.data(), DD.data(), llg.data(), uug.data(), ZZl.data(), ZZu.data(), zzl.data(), zzu.data(), iidxs.data(), lls.data(), lus.data(), &qp_);
     d_ocp_qp_ipm_solve(&qp_, &qpSol_, &arg_, &workspace_);
 
     if (verbose) {
@@ -637,9 +659,10 @@ hpipm_status HpipmInterface::solve(const vector_t& x0, std::vector<VectorFunctio
                                    std::vector<ScalarFunctionQuadraticApproximation>& cost,
                                    std::vector<VectorFunctionLinearApproximation>* constraints,
                                    std::vector<VectorFunctionLinearApproximation>* ineqConstraints,
+                                   std::vector<BoundConstraint>* boundConstraints,
                                    vector_array_t& stateTrajectory,
                                    vector_array_t& inputTrajectory, bool verbose) {
-  return pImpl_->solve(x0, dynamics, cost, constraints, ineqConstraints, stateTrajectory, inputTrajectory, verbose);
+  return pImpl_->solve(x0, dynamics, cost, constraints, ineqConstraints, boundConstraints, stateTrajectory, inputTrajectory, verbose);
 }
 
 std::vector<ScalarFunctionQuadraticApproximation> HpipmInterface::getRiccatiCostToGo(const VectorFunctionLinearApproximation& dynamics0,

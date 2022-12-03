@@ -48,6 +48,7 @@ struct Transcription {
   VectorFunctionLinearApproximation constraints;
   VectorFunctionLinearApproximation ineqConstraints;
   VectorFunctionLinearApproximation constraintsProjection;
+  BoundConstraint boundConstraint;
 };
 
 /**
@@ -82,6 +83,7 @@ struct TerminalTranscription {
   ScalarFunctionQuadraticApproximation cost;
   VectorFunctionLinearApproximation constraints;
   VectorFunctionLinearApproximation ineqConstraints;
+  BoundConstraint boundConstraint;
 };
 
 /**
@@ -109,6 +111,7 @@ struct EventTranscription {
   ScalarFunctionQuadraticApproximation cost;
   VectorFunctionLinearApproximation constraints;
   VectorFunctionLinearApproximation ineqConstraints;
+  BoundConstraint boundConstraint;
 };
 
 /**

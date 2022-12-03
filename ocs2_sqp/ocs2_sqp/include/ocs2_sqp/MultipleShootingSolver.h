@@ -162,6 +162,7 @@ class MultipleShootingSolver : public SolverBase {
   std::vector<VectorFunctionLinearApproximation> boxConstraints_;
   std::vector<VectorFunctionLinearApproximation> constraintsProjection_;
   std::vector<VectorFunctionLinearApproximation> ineqConstraints_;
+  std::vector<BoundConstraint> boundConstraints_;
 
   // Iteration performance log
   std::vector<PerformanceIndex> performanceIndeces_;

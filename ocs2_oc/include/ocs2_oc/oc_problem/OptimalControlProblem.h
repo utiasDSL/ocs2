@@ -35,6 +35,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ocs2_core/Types.h>
 //  #include <ocs2_core/augmented_lagrangian/StateAugmentedLagrangianCollection.h>
 //  #include <ocs2_core/augmented_lagrangian/StateInputAugmentedLagrangianCollection.h>
+#include <ocs2_core/constraint/BoundConstraint.h>
 #include <ocs2_core/constraint/StateConstraintCollection.h>
 #include <ocs2_core/constraint/StateInputConstraintCollection.h>
 #include <ocs2_core/cost/StateCostCollection.h>
@@ -77,6 +78,8 @@ struct OptimalControlProblem {
   std::unique_ptr<StateConstraintCollection> finalEqualityConstraintPtr;
   /** (Hard) inequality constraints **/
   std::unique_ptr<StateInputConstraintCollection> inequalityConstraintPtr;
+  /** Simple bound (box) constraints **/
+  std::unique_ptr<BoundConstraint> boundConstraintPtr;
 
   /* Lagrangians */
   /** Lagrangian for intermediate equality constraints */

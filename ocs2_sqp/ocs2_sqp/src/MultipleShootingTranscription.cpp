@@ -48,6 +48,7 @@ Transcription setupIntermediateNode(const OptimalControlProblem& optimalControlP
   auto& constraints = transcription.constraints;
   auto& ineqConstraints = transcription.ineqConstraints;
   auto& projection = transcription.constraintsProjection;
+  auto& bounds = transcription.boundConstraint;
 
   // Dynamics
   // Discretization returns x_{k+1} = A_{k} * dx_{k} + B_{k} * du_{k} + b_{k}
@@ -95,6 +96,12 @@ Transcription setupIntermediateNode(const OptimalControlProblem& optimalControlP
         changeOfInputVariables(ineqConstraints, projection.dfdu, projection.dfdx, projection.f);
       }
     }
+  }
+
+  // Box constraints
+  if (!optimalControlProblem.boundConstraintPtr->empty()) {
+    bounds = optimalControlProblem.boundConstraintPtr->center(x, u);
+    performance.inequalityConstraintsSSE += dt * bounds.violation(x, u).cwiseMin(0.0).squaredNorm();
   }
 
   return transcription;

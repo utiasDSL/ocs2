@@ -62,6 +62,12 @@ MultipleShootingSolver::MultipleShootingSolver(Settings settings, const OptimalC
   // Operating points
   initializerPtr_.reset(initializer.clone());
 
+  if (ocpDefinitions_[0].boundConstraintPtr.get() == nullptr) {
+    std::cout << "ptr is null even here" << std::endl;
+  } else {
+    std::cout << "ptr is not null here" << std::endl;
+  }
+
   if (optimalControlProblem.equalityConstraintPtr->empty()) {
     settings_.projectStateInputEqualityConstraints = false;  // True does not make sense if there are no constraints.
   }
@@ -277,8 +283,13 @@ MultipleShootingSolver::OcpSubproblemSolution MultipleShootingSolver::getOCPSolu
     ineqConstraintPtr = &ineqConstraints_;
   }
 
-  hpipmInterface_.resize(hpipm_interface::extractSizesFromProblem(dynamics_, cost_, eqConstraintPtr, ineqConstraintPtr, settings_.hpipmSettings.use_slack));
-  status = hpipmInterface_.solve(delta_x0, dynamics_, cost_, eqConstraintPtr, ineqConstraintPtr, deltaXSol, deltaUSol, settings_.printSolverStatus);
+  std::vector<BoundConstraint>* boundConstraintPtr = nullptr;
+  if (!ocpDefinitions_.front().boundConstraintPtr->empty()) {
+    boundConstraintPtr = &boundConstraints_;
+  }
+
+  hpipmInterface_.resize(hpipm_interface::extractSizesFromProblem(dynamics_, cost_, eqConstraintPtr, ineqConstraintPtr, boundConstraintPtr, settings_.hpipmSettings.use_slack));
+  status = hpipmInterface_.solve(delta_x0, dynamics_, cost_, eqConstraintPtr, ineqConstraintPtr, boundConstraintPtr, deltaXSol, deltaUSol, settings_.printSolverStatus);
 
   if (status != hpipm_status::SUCCESS) {
     throw std::runtime_error("[MultipleShootingSolver] Failed to solve QP");
@@ -382,6 +393,7 @@ PerformanceIndex MultipleShootingSolver::setupQuadraticSubproblem(const std::vec
   cost_.resize(N + 1);
   constraints_.resize(N + 1);
   ineqConstraints_.resize(N + 1);
+  boundConstraints_.resize(N + 1);
   constraintsProjection_.resize(N);
 
   std::atomic_int timeIndex{0};
@@ -401,6 +413,7 @@ PerformanceIndex MultipleShootingSolver::setupQuadraticSubproblem(const std::vec
         cost_[i] = std::move(result.cost);
         constraints_[i] = std::move(result.constraints);
         ineqConstraints_[i] = std::move(result.ineqConstraints);
+        boundConstraints_[i] = std::move(result.boundConstraint);
         constraintsProjection_[i] = VectorFunctionLinearApproximation::Zero(0, x[i].size(), 0);
       } else {
         // Normal, intermediate node
@@ -413,6 +426,7 @@ PerformanceIndex MultipleShootingSolver::setupQuadraticSubproblem(const std::vec
         cost_[i] = std::move(result.cost);
         constraints_[i] = std::move(result.constraints);
         ineqConstraints_[i] = std::move(result.ineqConstraints);
+        boundConstraints_[i] = std::move(result.boundConstraint);
         constraintsProjection_[i] = std::move(result.constraintsProjection);
       }
 
@@ -426,6 +440,7 @@ PerformanceIndex MultipleShootingSolver::setupQuadraticSubproblem(const std::vec
       cost_[i] = std::move(result.cost);
       constraints_[i] = std::move(result.constraints);
       ineqConstraints_[i] = std::move(result.ineqConstraints);
+      boundConstraints_[i] = std::move(result.boundConstraint);
     }
 
     // Accumulate! Same worker might run multiple tasks

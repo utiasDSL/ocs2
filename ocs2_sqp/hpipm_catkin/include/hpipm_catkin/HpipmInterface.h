@@ -36,6 +36,7 @@ extern "C" {
 }
 
 #include <ocs2_core/Types.h>
+#include <ocs2_core/constraint/BoundConstraint.h>
 
 #include "hpipm_catkin/HpipmInterfaceSettings.h"
 #include "hpipm_catkin/OcpSize.h"
@@ -86,7 +87,7 @@ class HpipmInterface {
    */
   hpipm_status solve(const vector_t& x0, std::vector<VectorFunctionLinearApproximation>& dynamics,
                      std::vector<ScalarFunctionQuadraticApproximation>& cost, std::vector<VectorFunctionLinearApproximation>* constraints,
-                     std::vector<VectorFunctionLinearApproximation>* ineqConstraints, vector_array_t& stateTrajectory,
+                     std::vector<VectorFunctionLinearApproximation>* ineqConstraints, std::vector<BoundConstraint>* boundConstraints, vector_array_t& stateTrajectory,
                      vector_array_t& inputTrajectory, bool verbose = false);
 
   /**

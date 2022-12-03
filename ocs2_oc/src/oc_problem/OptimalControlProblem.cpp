@@ -52,6 +52,7 @@ OptimalControlProblem::OptimalControlProblem()
       finalEqualityConstraintPtr(new StateConstraintCollection),
       /* Inequality constraints */
       inequalityConstraintPtr(new StateInputConstraintCollection),
+      boundConstraintPtr(new BoundConstraint),
       /* Lagrangians */
       equalityLagrangianPtr(new StateInputCostCollection),
       stateEqualityLagrangianPtr(new StateCostCollection),
@@ -86,6 +87,7 @@ OptimalControlProblem::OptimalControlProblem(const OptimalControlProblem& other)
       finalEqualityConstraintPtr(other.finalEqualityConstraintPtr->clone()),
       /* Inequality constraints */
       inequalityConstraintPtr(other.inequalityConstraintPtr->clone()),
+      boundConstraintPtr(other.boundConstraintPtr->clone()),
       /* Lagrangians */
       equalityLagrangianPtr(other.equalityLagrangianPtr->clone()),
       stateEqualityLagrangianPtr(other.stateEqualityLagrangianPtr->clone()),
