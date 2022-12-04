@@ -62,12 +62,6 @@ MultipleShootingSolver::MultipleShootingSolver(Settings settings, const OptimalC
   // Operating points
   initializerPtr_.reset(initializer.clone());
 
-  if (ocpDefinitions_[0].boundConstraintPtr.get() == nullptr) {
-    std::cout << "ptr is null even here" << std::endl;
-  } else {
-    std::cout << "ptr is not null here" << std::endl;
-  }
-
   if (optimalControlProblem.equalityConstraintPtr->empty()) {
     settings_.projectStateInputEqualityConstraints = false;  // True does not make sense if there are no constraints.
   }
@@ -142,14 +136,6 @@ void MultipleShootingSolver::runImpl(scalar_t initTime, const vector_t& initStat
   vector_array_t x, u;
   initializeStateInputTrajectories(initState, timeDiscretization, x, u);
 
-  // std::cout << "x[0] = " << x[0] << std::endl;
-  // std::cout << "x[1] = " << x[1] << std::endl;
-  // std::cout << "x[2] = " << x[2] << std::endl;
-  //
-  // std::cout << "u[0] = " << u[0] << std::endl;
-  // std::cout << "u[1] = " << u[1] << std::endl;
-  // std::cout << "u[2] = " << u[2] << std::endl;
-
   // Initialize references
   for (auto& ocpDefinition : ocpDefinitions_) {
     const auto& targetTrajectories = this->getReferenceManager().getTargetTrajectories();
@@ -175,13 +161,6 @@ void MultipleShootingSolver::runImpl(scalar_t initTime, const vector_t& initStat
     const vector_t delta_x0 = initState - x[0];
     const auto deltaSolution = getOCPSolution(delta_x0);
     solveQpTimer_.endTimer();
-
-    // std::cout << x[1] << std::endl;
-    // std::cout << "~~~" << std::endl;
-    // std::cout << u[1] << std::endl;
-    // std::cout << "~~~" << std::endl;
-    // std::cout << deltaSolution.deltaUSol[1] << std::endl;
-    // std::cout << deltaSolution.deltaXSol[0] << std::endl;
 
     // Apply step
     linesearchTimer_.startTimer();

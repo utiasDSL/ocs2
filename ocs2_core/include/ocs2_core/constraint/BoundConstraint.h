@@ -4,8 +4,6 @@
 
 namespace ocs2 {
 
-// TODO this should just be the bounds, no booleans
-
 /**
  * Bound constraint
  */
@@ -17,6 +15,7 @@ class BoundConstraint {
     return new BoundConstraint(*this);
   }
 
+  // True if no bound constraints are active on either state or input
   bool empty() const {
     return state_idx_.size() == 0 && input_idx_.size() == 0;
   }
@@ -28,12 +27,14 @@ class BoundConstraint {
     input_ub_.setZero(input_dim);
   }
 
+  // Get the constraint violation: a negative value has violated the constraint
   vector_t violation(const vector_t& state, const vector_t& input) const {
     vector_t v(2 * state.size() + 2 * input.size());
     v << state_ub_ - state, state - state_lb_, input_ub_ - input, input - input_lb_;
     return v;
   }
 
+  // Center the constraints around a given state and input
   BoundConstraint center(const vector_t& state, const vector_t& input) const {
         BoundConstraint centered;
         centered.state_lb_ = state_lb_ - state;
@@ -45,36 +46,16 @@ class BoundConstraint {
         return centered;
   }
 
-  // BoundConstraint(size_t state_dim, size_t input_dim) {
-  //   // Initialize sizes and disable all constraints
-  //   state_lb_.setZero(state_dim);
-  //   state_ub_.setZero(state_dim);
-  //   state_bounded_ = (state_dim > 0);
-  //   // state_mask_.resize(state_dim, false);
-  //   // state_lb_mask_.setZero(state_dim);
-  //   // state_ub_mask_.setZero(state_dim);
-  //
-  //   input_lb_.setZero(input_dim);
-  //   input_ub_.setZero(input_dim);
-  //   input_bounded_ = (input_dim > 0);
-  //   // input_mask_.resize(input_dim, false);
-  //   // input_lb_mask_.setZero(input_dim);
-  //   // input_ub_mask_.setZero(input_dim);
-  // }
-
  public:
   vector_t state_lb_;
   vector_t state_ub_;
+
+  // Indices indicate which variables actually have constraints
   Eigen::VectorXi state_idx_;
-  // Mask being 1 (true) indicates the constraint is active
-  // std::vector<bool> state_mask_;
-  // bool state_bounded_ = false;
 
   vector_t input_lb_;
   vector_t input_ub_;
   Eigen::VectorXi input_idx_;
-  // std::vector<bool> input_mask_;
-  // bool input_bounded_ = false;
 };
 
 }  // namespace ocs2

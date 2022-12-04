@@ -394,7 +394,7 @@ class HpipmInterface::Impl {
         }
 
         if (bounds[0].input_idx_.size() > 0) {
-            for (int k = 0; k <= N; k++) {
+            for (int k = 0; k < N; k++) {
                 lbu[k] = bounds[k].input_lb_.data();
                 ubu[k] = bounds[k].input_ub_.data();
                 idxbu[k] = bounds[k].input_idx_.data();
