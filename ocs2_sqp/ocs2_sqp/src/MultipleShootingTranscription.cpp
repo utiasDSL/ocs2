@@ -140,6 +140,12 @@ PerformanceIndex computeIntermediatePerformance(const OptimalControlProblem& opt
     }
   }
 
+  // Box constraints
+  if (!optimalControlProblem.boundConstraintPtr->empty()) {
+    const BoundConstraint bounds = optimalControlProblem.boundConstraintPtr->center(x, u);
+    performance.inequalityConstraintsSSE += dt * bounds.violation(x, u).cwiseMin(0.0).squaredNorm();
+  }
+
   return performance;
 }
 

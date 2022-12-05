@@ -79,10 +79,10 @@ OcpSize extractSizesFromProblem(const std::vector<VectorFunctionLinearApproximat
   // Box constraints
   if (boundConstraints != nullptr) {
     for (int k = 1; k < numStages + 1; k++) {
-        problemSize.numStateBoxConstraints[k] = (*boundConstraints)[k].state_idx_.size();
+        problemSize.numStateBoxConstraints[k] = (*boundConstraints)[k].numStateConstraints();
     }
     for (int k = 0; k < numStages; k++) {
-        problemSize.numInputBoxConstraints[k] = (*boundConstraints)[k].input_idx_.size();
+        problemSize.numInputBoxConstraints[k] = (*boundConstraints)[k].numInputConstraints();
     }
   }
 
