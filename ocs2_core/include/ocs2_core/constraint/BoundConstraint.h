@@ -45,10 +45,10 @@ class BoundConstraint {
 
         // TODO we can build a selector matrix to simplify computation of the
         // violation
-        matrix_t Sx = matrix_t::Zero(numStateConstraints(), state_lb_.size());
-        for (int i = 0; i < numStateConstraints(); ++i) {
-            Sx(i, state_idx[i]) = 1;
-        }
+        // matrix_t Sx = matrix_t::Zero(numStateConstraints(), state_lb_.size());
+        // for (int i = 0; i < numStateConstraints(); ++i) {
+        //     Sx(i, state_idx[i]) = 1;
+        // }
     }
 
     void setStateIndices(int start, size_t size) {
@@ -84,7 +84,6 @@ class BoundConstraint {
     // Get the constraint violation: a negative value has violated the
     // constraint
     vector_t violation(const vector_t& state, const vector_t& input) const {
-        // TODO this does not account for the indices
         const size_t nx = numStateConstraints();
         const size_t nu = numInputConstraints();
         vector_t v(2 * nx + 2 * nu);
@@ -98,10 +97,6 @@ class BoundConstraint {
             v(2 * nx + i) = input_ub_(idx) - input(idx);
             v(2 * nx + nu + i) = input(idx) - input_lb_(idx);
         }
-
-        // vector_t v(2 * state.size() + 2 * input.size());
-        // v << state_ub_ - state, state - state_lb_, input_ub_ - input, input -
-        // input_lb_;
         return v;
     }
 

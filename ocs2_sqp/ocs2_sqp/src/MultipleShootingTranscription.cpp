@@ -100,8 +100,11 @@ Transcription setupIntermediateNode(const OptimalControlProblem& optimalControlP
 
   // Box constraints
   if (!optimalControlProblem.boundConstraintPtr->empty()) {
+    // center the bounds for use with delta x, delta u
     bounds = optimalControlProblem.boundConstraintPtr->center(x, u);
-    performance.inequalityConstraintsSSE += dt * bounds.violation(x, u).cwiseMin(0.0).squaredNorm();
+
+    // violation is evaluated using the original bounds
+    performance.inequalityConstraintsSSE += dt * optimalControlProblem.boundConstraintPtr->violation(x, u).cwiseMin(0.0).squaredNorm();
   }
 
   return transcription;
@@ -142,8 +145,8 @@ PerformanceIndex computeIntermediatePerformance(const OptimalControlProblem& opt
 
   // Box constraints
   if (!optimalControlProblem.boundConstraintPtr->empty()) {
-    const BoundConstraint bounds = optimalControlProblem.boundConstraintPtr->center(x, u);
-    performance.inequalityConstraintsSSE += dt * bounds.violation(x, u).cwiseMin(0.0).squaredNorm();
+    // const BoundConstraint bounds = optimalControlProblem.boundConstraintPtr->center(x, u);
+    performance.inequalityConstraintsSSE += dt * optimalControlProblem.boundConstraintPtr->violation(x, u).cwiseMin(0.0).squaredNorm();
   }
 
   return performance;
@@ -156,6 +159,7 @@ TerminalTranscription setupTerminalNode(const OptimalControlProblem& optimalCont
   auto& cost = transcription.cost;
   auto& constraints = transcription.constraints;
   auto& ineqConstraints = transcription.ineqConstraints;
+  // auto& bounds = transcription.boundConstraint;
 
   constexpr auto request = Request::Cost + Request::SoftConstraint + Request::Approximation;
   optimalControlProblem.preComputationPtr->requestFinal(request, t, x);
@@ -165,6 +169,11 @@ TerminalTranscription setupTerminalNode(const OptimalControlProblem& optimalCont
 
   constraints = VectorFunctionLinearApproximation::Zero(0, x.size(), 0);
   ineqConstraints = VectorFunctionLinearApproximation::Zero(0, x.size(), 0);
+
+  // Bounds is empty by default, so shouldn't need to do anything (unless we do
+  // want to bound the final state)
+  // TODO
+  // bounds = optimalControlProblem.boundConstraintPtr->center(x, vector_t::Zero(optimalControlProblem.boundConstraintPtr->input_lb_.size()));
 
   return transcription;
 }

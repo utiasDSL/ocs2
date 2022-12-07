@@ -349,15 +349,17 @@ class HpipmInterface::Impl {
     std::vector<scalar_t*> lus(N + 1, nullptr);
     std::vector<int*> iidxs(N + 1, nullptr);
 
-    if (settings_.use_slack) {
+    if (settings_.slacks.enabled) {
         for (int k = 0; k <= N; k++) {
+          // TODO not all of this is used at k = 0, k = N (some box constraints
+          // not active)
           size_t n = ocpSize_.numIneqSlack[k] + ocpSize_.numStateBoxSlack[k] + ocpSize_.numInputBoxSlack[k];
-          Zl[k].setConstant(n, settings_.slack_lower_L2_penalty);
-          Zu[k].setConstant(n, settings_.slack_upper_L2_penalty);
-          zl[k].setConstant(n, settings_.slack_lower_L1_penalty);
-          zu[k].setConstant(n, settings_.slack_upper_L1_penalty);
-          sl[k].setConstant(n, settings_.slack_lower_low_bound);
-          su[k].setConstant(n, settings_.slack_upper_low_bound);
+          Zl[k].setConstant(n, settings_.slacks.lower_L2_penalty);
+          Zu[k].setConstant(n, settings_.slacks.upper_L2_penalty);
+          zl[k].setConstant(n, settings_.slacks.lower_L1_penalty);
+          zu[k].setConstant(n, settings_.slacks.upper_L1_penalty);
+          sl[k].setConstant(n, settings_.slacks.lower_low_bound);
+          su[k].setConstant(n, settings_.slacks.upper_low_bound);
 
           // set indices to [0, ..., n - 1]
           idxs[k].setLinSpaced(n, 0, n - 1);
@@ -385,7 +387,7 @@ class HpipmInterface::Impl {
     if (boundConstraints != nullptr) {
         auto& bounds = *boundConstraints;
 
-        if (bounds[0].state_idx_.size() > 0) {
+        if (bounds[0].numStateConstraints() > 0) {
             for (int k = 1; k <= N; k++) {
                 lbx[k] = bounds[k].state_lb_.data();
                 ubx[k] = bounds[k].state_ub_.data();
@@ -393,7 +395,7 @@ class HpipmInterface::Impl {
             }
         }
 
-        if (bounds[0].input_idx_.size() > 0) {
+        if (bounds[0].numInputConstraints() > 0) {
             for (int k = 0; k < N; k++) {
                 lbu[k] = bounds[k].input_lb_.data();
                 ubu[k] = bounds[k].input_ub_.data();

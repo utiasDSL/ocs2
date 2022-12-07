@@ -267,7 +267,7 @@ MultipleShootingSolver::OcpSubproblemSolution MultipleShootingSolver::getOCPSolu
     boundConstraintPtr = &boundConstraints_;
   }
 
-  hpipmInterface_.resize(hpipm_interface::extractSizesFromProblem(dynamics_, cost_, eqConstraintPtr, ineqConstraintPtr, boundConstraintPtr, settings_.hpipmSettings.use_slack));
+  hpipmInterface_.resize(hpipm_interface::extractSizesFromProblem(dynamics_, cost_, eqConstraintPtr, ineqConstraintPtr, boundConstraintPtr, settings_.hpipmSettings.slacks.enabled));
   status = hpipmInterface_.solve(delta_x0, dynamics_, cost_, eqConstraintPtr, ineqConstraintPtr, boundConstraintPtr, deltaXSol, deltaUSol, settings_.printSolverStatus);
 
   if (status != hpipm_status::SUCCESS) {
