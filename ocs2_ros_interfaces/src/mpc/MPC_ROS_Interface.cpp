@@ -98,7 +98,7 @@ bool MPC_ROS_Interface::resetMpcCallback(ocs2_msgs::reset::Request& req, ocs2_ms
 /******************************************************************************************************/
 ocs2_msgs::mpc_flattened_controller MPC_ROS_Interface::createMpcPolicyMsg(const PrimalSolution& primalSolution,
                                                                           const CommandData& commandData,
-                                                                          const PerformanceIndex& performanceIndices) {
+                                                                          const PerformanceIndex& performanceIndices, const scalar_t solveTime) {
   ocs2_msgs::mpc_flattened_controller mpcPolicyMsg;
 
   mpcPolicyMsg.initObservation = ros_msg_conversions::createObservationMsg(commandData.mpcInitObservation_);
@@ -106,6 +106,7 @@ ocs2_msgs::mpc_flattened_controller MPC_ROS_Interface::createMpcPolicyMsg(const 
   mpcPolicyMsg.modeSchedule = ros_msg_conversions::createModeScheduleMsg(primalSolution.modeSchedule_);
   mpcPolicyMsg.performanceIndices =
       ros_msg_conversions::createPerformanceIndicesMsg(commandData.mpcInitObservation_.time, performanceIndices);
+  mpcPolicyMsg.solveTime = solveTime;
 
   switch (primalSolution.controllerPtr_->getType()) {
     case ControllerType::FEEDFORWARD:
@@ -198,7 +199,7 @@ void MPC_ROS_Interface::publisherWorker() {
     }
 
     ocs2_msgs::mpc_flattened_controller mpcPolicyMsg =
-        createMpcPolicyMsg(*publisherPrimalSolutionPtr_, *publisherCommandPtr_, *publisherPerformanceIndicesPtr_);
+        createMpcPolicyMsg(*publisherPrimalSolutionPtr_, *publisherCommandPtr_, *publisherPerformanceIndicesPtr_, mpcTimer_.getLastIntervalInMilliseconds());
 
     // publish the message
     mpcPolicyPublisher_.publish(mpcPolicyMsg);
@@ -284,7 +285,7 @@ void MPC_ROS_Interface::mpcObservationCallback(const ocs2_msgs::mpc_observation:
 
 #else
   ocs2_msgs::mpc_flattened_controller mpcPolicyMsg =
-      createMpcPolicyMsg(*bufferPrimalSolutionPtr_, *bufferCommandPtr_, *bufferPerformanceIndicesPtr_);
+      createMpcPolicyMsg(*bufferPrimalSolutionPtr_, *bufferCommandPtr_, *bufferPerformanceIndicesPtr_, mpcTimer_.getLastIntervalInMilliseconds());
   mpcPolicyPublisher_.publish(mpcPolicyMsg);
 #endif
 }

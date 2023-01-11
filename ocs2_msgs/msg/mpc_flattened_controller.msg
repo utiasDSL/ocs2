@@ -19,3 +19,4 @@ mode_schedule           modeSchedule           # optimal/predefined MPC mode seq
 controller_data[]       data                   # the actual payload from flatten method: one vector of data per time step
 
 mpc_performance_indices performanceIndices     # solver performance indices
+float64 solveTime                              # solver solution time

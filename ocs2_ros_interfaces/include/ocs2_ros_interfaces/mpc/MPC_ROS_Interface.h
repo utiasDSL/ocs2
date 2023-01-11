@@ -120,7 +120,7 @@ class MPC_ROS_Interface {
    * @return MPC policy message.
    */
   static ocs2_msgs::mpc_flattened_controller createMpcPolicyMsg(const PrimalSolution& primalSolution, const CommandData& commandData,
-                                                                const PerformanceIndex& performanceIndices);
+                                                                const PerformanceIndex& performanceIndices, const scalar_t solveTime);
 
   /**
    * Handles ROS publishing thread.
