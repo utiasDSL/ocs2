@@ -74,6 +74,20 @@ void MRT_ROS_Interface::resetMpcNode(const TargetTrajectories& initTargetTraject
   ROS_INFO_STREAM("MPC node has been reset.");
 }
 
+void MRT_ROS_Interface::resetTarget(const TargetTrajectories& target) {
+  ocs2_msgs::reset resetSrv;
+  resetSrv.request.reset = static_cast<uint8_t>(true);
+  resetSrv.request.targetTrajectories = ros_msg_conversions::createTargetTrajectoriesMsg(target);
+
+  while (!mpcResetServiceClient_.waitForExistence(ros::Duration(5.0)) && ::ros::ok() && ::ros::master::check()) {
+    ROS_ERROR_STREAM("Failed to call service to reset MPC, retrying...");
+  }
+
+  mpcResetServiceClient_.call(resetSrv);
+  ROS_INFO_STREAM("MPC node has been reset.");
+
+}
+
 /******************************************************************************************************/
 /******************************************************************************************************/
 /******************************************************************************************************/

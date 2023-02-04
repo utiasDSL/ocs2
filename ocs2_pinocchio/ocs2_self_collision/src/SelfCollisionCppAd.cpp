@@ -94,8 +94,8 @@ std::pair<vector_t, matrix_t> SelfCollisionCppAd::getLinearApproximation(const P
     pointsInWorldFrame[i * numberOfParamsPerResult_ + 6] = distanceArray[i].min_distance >= 0 ? 1.0 : -1.0;
     vector_t normal = distanceArray[i].nearest_points[1] - distanceArray[i].nearest_points[0];
 
-    // Pinocchio (and underneath hpp-fcl) provide contact normals when the
-    // objects are in contact, otherwise it is NaNs. Use if available.
+    // Contact normals should never be NaNs, but check just in case (there used
+    // to be some bugs where they would be).
     if (!distanceArray[i].normal.hasNaN()) {
         normal = distanceArray[i].normal;
     } else {

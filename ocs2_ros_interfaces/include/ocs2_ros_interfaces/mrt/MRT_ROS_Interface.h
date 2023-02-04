@@ -75,6 +75,9 @@ class MRT_ROS_Interface : public MRT_BASE {
 
   void resetMpcNode(const TargetTrajectories& initTargetTrajectories) override;
 
+  // Reset target trajectory without resetting everything else.
+  void resetTarget(const TargetTrajectories& target);
+
   /**
    * Shut down the ROS nodes.
    */
