@@ -50,6 +50,8 @@ inline void setThreadPriority(int priority, pthread_t thread) {
       std::cerr << "WARNING: Failed to set threads priority (one possible reason could be "
                    "that the user and the group permissions are not set properly.)"
                 << std::endl;
+    } else {
+      std::cout << "Set thread priority to " << priority << std::endl;
     }
   }
 }
