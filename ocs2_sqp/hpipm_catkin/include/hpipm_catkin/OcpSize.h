@@ -92,7 +92,7 @@ OcpSize extractSizesFromProblem(const std::vector<VectorFunctionLinearApproximat
                                 const std::vector<VectorFunctionLinearApproximation>* constraints,
                                 const std::vector<VectorFunctionLinearApproximation>* ineqConstraints,
                                 const std::vector<BoundConstraint>* boundConstraints,
-                                bool useSlack);
+                                bool useSlack, bool useInputBoxSlack, bool useStateBoxSlack, bool usePolyIneqSlack);
 
 }  // namespace hpipm_interface
 }  // namespace ocs2

@@ -39,7 +39,10 @@ namespace ocs2 {
 namespace hpipm_interface {
 
 struct SlackSettings {
-  bool enabled = false;
+  bool enabled = false;  // enable or disable all slack variables
+  bool input_box = false;  // use slacks for input box constraints
+  bool state_box = false;  // use slacks for state box constraints
+  bool poly_ineq = false;  // use slacks for general polytopic inequality constraints
   scalar_t upper_L2_penalty = 1e2;
   scalar_t lower_L2_penalty = 1e2;
   scalar_t upper_L1_penalty = 0;

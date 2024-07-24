@@ -353,16 +353,39 @@ class HpipmInterface::Impl {
         for (int k = 0; k <= N; k++) {
           // TODO not all of this is used at k = 0, k = N (some box constraints
           // not active)
-          size_t n = ocpSize_.numIneqSlack[k] + ocpSize_.numStateBoxSlack[k] + ocpSize_.numInputBoxSlack[k];
-          Zl[k].setConstant(n, settings_.slacks.lower_L2_penalty);
-          Zu[k].setConstant(n, settings_.slacks.upper_L2_penalty);
-          zl[k].setConstant(n, settings_.slacks.lower_L1_penalty);
-          zu[k].setConstant(n, settings_.slacks.upper_L1_penalty);
-          sl[k].setConstant(n, settings_.slacks.lower_low_bound);
-          su[k].setConstant(n, settings_.slacks.upper_low_bound);
+          // numbers of slacks
+          const size_t nsu = ocpSize_.numInputBoxSlack[k];
+          const size_t nsx = ocpSize_.numStateBoxSlack[k];
+          const size_t nsi = ocpSize_.numIneqSlack[k];
+          const size_t ns = nsu + nsx + nsi;
 
-          // set indices to [0, ..., n - 1]
-          idxs[k].setLinSpaced(n, 0, n - 1);
+          Zl[k].setConstant(ns, settings_.slacks.lower_L2_penalty);
+          Zu[k].setConstant(ns, settings_.slacks.upper_L2_penalty);
+          zl[k].setConstant(ns, settings_.slacks.lower_L1_penalty);
+          zu[k].setConstant(ns, settings_.slacks.upper_L1_penalty);
+          sl[k].setConstant(ns, settings_.slacks.lower_low_bound);
+          su[k].setConstant(ns, settings_.slacks.upper_low_bound);
+
+          // numbers of constraints
+          const size_t ncu = ocpSize_.numInputBoxConstraints[k];
+          const size_t ncx = ocpSize_.numStateBoxConstraints[k];
+          const size_t nci = ocpSize_.numIneqConstraints[k];
+          const size_t nc = ncu + ncx + nci;
+
+          // constraints are ordered: input box, state box, general inequalities
+          idxs[k].resize(ns);
+          size_t si = 0;
+          if (settings_.slacks.input_box) {
+            idxs[k].segment(si, ncu).setLinSpaced(ncu, 0, ncu - 1);
+            si += ncu;
+          }
+          if (settings_.slacks.state_box) {
+            idxs[k].segment(si, ncx).setLinSpaced(ncx, ncu, ncu + ncx - 1);
+            si += ncx;
+          }
+          if (settings_.slacks.poly_ineq) {
+            idxs[k].segment(si, nci).setLinSpaced(nci, ncu + ncx, nc - 1);
+          }
 
           ZZl[k] = Zl[k].data();
           ZZu[k] = Zu[k].data();
