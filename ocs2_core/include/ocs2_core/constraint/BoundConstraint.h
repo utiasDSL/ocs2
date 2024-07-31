@@ -102,14 +102,16 @@ class BoundConstraint {
 
     // Center the constraints around a given state and input
     BoundConstraint center(const vector_t& state, const vector_t& input) const {
-        BoundConstraint centered;
-        centered.state_lb_ = state_lb_ - state;
-        centered.state_ub_ = state_ub_ - state;
-        centered.input_lb_ = input_lb_ - input;
-        centered.input_ub_ = input_ub_ - input;
-        centered.state_idx_ = state_idx_;
-        centered.input_idx_ = input_idx_;
-        return centered;
+      // TODO this fundamentally assumes that hpipm can take as long a vector as
+      // needed
+      BoundConstraint centered;
+      centered.state_lb_ = state_lb_ - state;
+      centered.state_ub_ = state_ub_ - state;
+      centered.input_lb_ = input_lb_ - input;
+      centered.input_ub_ = input_ub_ - input;
+      centered.state_idx_ = state_idx_;
+      centered.input_idx_ = input_idx_;
+      return centered;
     }
 
     // We leave the member variables public since we need to access their data

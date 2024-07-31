@@ -255,9 +255,9 @@ class HpipmInterface::Impl {
       auto& ineqConstr = *ineqConstraints;
 
       for (int k = 0; k <= N; k++) {
-        size_t ne = eqConstr[k].f.size();
-        size_t ni = ineqConstr[k].f.size();
-        size_t n = ne + ni;
+        const size_t ne = eqConstr[k].f.size();
+        const size_t ni = ineqConstr[k].f.size();
+        const size_t n = ne + ni;
         if (n == 0) {
             continue;
         }
@@ -288,6 +288,10 @@ class HpipmInterface::Impl {
             D[k] << eqConstr[k].dfdu, ineqConstr[k].dfdu;
             DD[k] = D[k].data();
         }
+
+        std::cout << "d[" << k << "] = " << d[k].transpose() << std::endl;
+        std::cout << "C[" << k << "] = " << C[k] << std::endl;
+        std::cout << "D[" << k << "] = " << D[k] << std::endl;
       }
 
     // If we only have one or the other, we can directly take pointers to data
@@ -320,6 +324,10 @@ class HpipmInterface::Impl {
         if (k < N) {
             DD[k] = constr[k].dfdu.data();
         }
+
+        std::cout << "d[" << k << "] = " << d[k].transpose() << std::endl;
+        std::cout << "C[" << k << "] = " << constr[k].dfdx << std::endl;
+        std::cout << "D[" << k << "] = " << constr[k].dfdu << std::endl;
       }
     }
 
@@ -412,9 +420,17 @@ class HpipmInterface::Impl {
 
         if (bounds[0].numStateConstraints() > 0) {
             for (int k = 1; k <= N; k++) {
-                lbx[k] = bounds[k].state_lb_.data();
-                ubx[k] = bounds[k].state_ub_.data();
-                idxbx[k] = bounds[k].state_idx_.data();
+                lbx[k] = bounds[k - 1].state_lb_.data();
+                ubx[k] = bounds[k - 1].state_ub_.data();
+                idxbx[k] = bounds[k - 1].state_idx_.data();
+
+                std::cout << "idx_x[" << k << "] = ";
+                for (auto i : bounds[k-1].state_idx_) {
+                    std::cout << i << " ";
+                }
+                std::cout << std::endl;
+                std::cout << "lb_x[" << k << "] = " << bounds[k-1].state_lb_.transpose() << std::endl;
+                std::cout << "ub_x[" << k << "] = " << bounds[k-1].state_ub_.transpose() << std::endl;
             }
         }
 
@@ -423,6 +439,14 @@ class HpipmInterface::Impl {
                 lbu[k] = bounds[k].input_lb_.data();
                 ubu[k] = bounds[k].input_ub_.data();
                 idxbu[k] = bounds[k].input_idx_.data();
+
+                std::cout << "idx_u[" << k << "] = ";
+                for (auto i : bounds[k].input_idx_) {
+                    std::cout << i << " ";
+                }
+                std::cout << std::endl;
+                std::cout << "lb_u[" << k << "] = " << bounds[k].input_lb_.transpose() << std::endl;
+                std::cout << "ub_u[" << k << "] = " << bounds[k].input_ub_.transpose() << std::endl;
             }
         }
     }
@@ -617,7 +641,7 @@ class HpipmInterface::Impl {
     } else if (hpipmStatus == hpipm_status::NAN_SOL) {
       fprintf(stderr, "Solver failed! NaN in computations\n");
     } else if (hpipmStatus == hpipm_status::INCONS_EQ) {
-      fprintf(stderr, "Solver failed! Unconsistent equality constraints\n");
+      fprintf(stderr, "Solver failed! Inconsistent equality constraints\n");
     } else {
       fprintf(stderr, "Solver failed! Unknown return flag\n");
     }
