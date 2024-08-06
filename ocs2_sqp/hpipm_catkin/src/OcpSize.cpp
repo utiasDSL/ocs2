@@ -89,13 +89,13 @@ OcpSize extractSizesFromProblem(const std::vector<VectorFunctionLinearApproximat
   // Slack variables
   if (useSlack) {
     for (int k = 0; k < numStages + 1; k++) {
-      if (useInputBoxSlack) {
+      if (useInputBoxSlack && k < numStages) {
           problemSize.numInputBoxSlack[k] = problemSize.numInputBoxConstraints[k];
       } else {
           problemSize.numInputBoxSlack[k] = 0;
       }
 
-      if (useStateBoxSlack) {
+      if (useStateBoxSlack && k > 0) {
           problemSize.numStateBoxSlack[k] = problemSize.numStateBoxConstraints[k];
       } else {
           problemSize.numStateBoxSlack[k] = 0;
