@@ -349,8 +349,11 @@ class HpipmInterface::Impl {
     std::vector<scalar_t*> lus(N + 1, nullptr);
     std::vector<int*> iidxs(N + 1, nullptr);
 
+    // TODO I actually just want my one particular final equality constraint to
+    // not have slack variables
     if (settings_.slacks.enabled) {
         for (int k = 0; k <= N; k++) {
+        // for (int k = 0; k < N; k++) {
           // TODO not all of this is used at k = 0, k = N (some box constraints
           // not active)
           // numbers of slacks
@@ -383,7 +386,7 @@ class HpipmInterface::Impl {
             idxs[k].segment(si, ncx).setLinSpaced(ncx, ncu, ncu + ncx - 1);
             si += ncx;
           }
-          if (settings_.slacks.poly_ineq) {
+          if (settings_.slacks.poly_ineq && nsi > 0) {
             idxs[k].segment(si, nci).setLinSpaced(nci, ncu + ncx, nc - 1);
           }
 

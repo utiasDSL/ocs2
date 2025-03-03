@@ -102,6 +102,7 @@ OcpSize extractSizesFromProblem(const std::vector<VectorFunctionLinearApproximat
       }
 
       if (usePolyIneqSlack) {
+      // if (usePolyIneqSlack && k < numStages) {
           problemSize.numIneqSlack[k] = problemSize.numIneqConstraints[k];
       } else {
           problemSize.numIneqSlack[k] = 0;

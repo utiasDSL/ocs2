@@ -176,4 +176,8 @@ vector_t MPC_MRT_Interface::getStateInputEqualityConstraintLagrangian(scalar_t t
   return mpc_.getSolverPtr()->getStateInputEqualityConstraintLagrangian(time, state);
 }
 
+scalar_t MPC_MRT_Interface::getLastSolveTime() const {
+    return mpcTimer_.getLastIntervalInMilliseconds();
+}
+
 }  // namespace ocs2

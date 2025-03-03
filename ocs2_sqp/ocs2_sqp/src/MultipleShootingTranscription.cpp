@@ -170,6 +170,14 @@ TerminalTranscription setupTerminalNode(const OptimalControlProblem& optimalCont
   constraints = VectorFunctionLinearApproximation::Zero(0, x.size(), 0);
   ineqConstraints = VectorFunctionLinearApproximation::Zero(0, x.size(), 0);
 
+  // Equality constraints
+  if (!optimalControlProblem.finalEqualityConstraintPtr->empty()) {
+    constraints = optimalControlProblem.finalEqualityConstraintPtr->getLinearApproximation(t, x, *optimalControlProblem.preComputationPtr);
+    if (constraints.f.size() > 0) {
+      performance.equalityConstraintsSSE = constraints.f.squaredNorm();
+    }
+  }
+
   // Bounds is empty by default, so shouldn't need to do anything (unless we do
   // want to bound the final state)
   // TODO
@@ -185,6 +193,14 @@ PerformanceIndex computeTerminalPerformance(const OptimalControlProblem& optimal
   optimalControlProblem.preComputationPtr->requestFinal(request, t, x);
 
   performance.cost = computeFinalCost(optimalControlProblem, t, x);
+
+  // Equality constraints
+  if (!optimalControlProblem.finalEqualityConstraintPtr->empty()) {
+    const vector_t constraints = optimalControlProblem.finalEqualityConstraintPtr->getValue(t, x, *optimalControlProblem.preComputationPtr);
+    if (constraints.size() > 0) {
+      performance.equalityConstraintsSSE = constraints.squaredNorm();
+    }
+  }
 
   return performance;
 }

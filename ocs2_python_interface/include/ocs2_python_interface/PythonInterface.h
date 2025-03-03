@@ -193,10 +193,11 @@ class PythonInterface {
 
   int stateDim_ = -1;  // -1 indicates that it is not initialized
   int inputDim_ = -1;  // -1 indicates that it is not initialized
+                       //
+  std::unique_ptr<MPC_MRT_Interface> mpcMrtInterface_;
 
  private:
   std::unique_ptr<MPC_BASE> mpcPtr_;
-  std::unique_ptr<MPC_MRT_Interface> mpcMrtInterface_;
 
   TargetTrajectories targetTrajectories_;
   OptimalControlProblem problem_;

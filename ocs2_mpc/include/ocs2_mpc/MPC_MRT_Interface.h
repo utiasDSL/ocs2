@@ -104,6 +104,8 @@ class MPC_MRT_Interface final : public MRT_BASE {
    */
   vector_t getStateInputEqualityConstraintLagrangian(scalar_t time, const vector_t& state) const;
 
+  scalar_t getLastSolveTime() const;
+
  protected:
   /**
    * Updates the buffer variables from the MPC object. This method is automatically called by advanceMpc()
