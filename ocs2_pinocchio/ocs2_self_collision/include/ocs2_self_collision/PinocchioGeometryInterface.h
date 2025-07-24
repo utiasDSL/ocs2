@@ -35,6 +35,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <hpp/fcl/collision_data.h>
 #include <pinocchio/multibody/fcl.hpp>
+#include <pinocchio/multibody/geometry.hpp>
 
 #include <urdf_model/model.h>
 
